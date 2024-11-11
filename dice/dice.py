@@ -140,12 +140,42 @@ class Dice(commands.Cog):
     @commands.hybrid_command()
     async def randstats(self, ctx: commands.Context) -> None:
         """ Roll random Ability Scores
-        Roll 4d6 six times, dropping the lowest from each. 
+        Roll 4d6 six times, drop the lowest from each
         Sum each and the total of all.
 
         Settings - Save upper and lower bounds, repeat the function if outside
         """
-        pass
+        try:
+            dice_roller = pyhedrals.DiceRoller(
+                maxDice=await self.config.max_dice_rolls(),
+                maxSides=await self.config.max_die_sides(),
+            )
+            total = 0
+            for _ in range(6):
+                result = dice_roller.parse("4d6dl")
+                await ctx.send(f"🎲 {list(result.rolls)[0]}")
+                total += result.result
+            await ctx.send(f"**TOTAL:** {total}")
+        except (
+            ValueError,
+            NotImplementedError,
+            pyhedrals.InvalidOperandsException,
+            pyhedrals.SyntaxErrorException,
+            pyhedrals.UnknownCharacterException,
+        ) as exception:
+            if ctx.interaction:
+                await ctx.send(
+                    error(
+                        f"{ctx.author.mention}, something went wrong:\n`{exception!s}`"
+                    ),
+                    ephemeral=True
+                )
+            else:
+                await ctx.send(
+                    error(
+                        f"{ctx.author.mention}, something went wrong:\n`{exception!s}`"
+                    )
+                )
 
     @commands.hybrid_command()
     async def roll(self, ctx: commands.Context, *, roll: str) -> None:
