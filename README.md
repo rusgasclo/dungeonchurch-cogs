@@ -1,12 +1,14 @@
 <p align="center">
-    <img width="650" src="logo-chrome.png">
+    <img width="650" src="https://raw.githubusercontent.com/oakbrad/dungeonchurch/refs/heads/main/logo-chrome.png">
 </p>
-Red Bot cogs for Dungeon Church D&D group.
 
+Red Bot cogs useful for RPG gaming groups.
+
+----
 To add these cogs to your instance, run this command first (`[p]` is your bot prefix):
 
 ```
-[p]repo add pcxcogs https://github.com/oakbrad/dungeonchurch-cogs
+[p]repo add dungeonchurch https://github.com/oakbrad/dungeonchurch-cogs
 ```
 
 Then install your cog(s) of choice:
