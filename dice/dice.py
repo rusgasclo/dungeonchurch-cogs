@@ -138,6 +138,14 @@ class Dice(commands.Cog):
     #
 
     @commands.hybrid_command()
+    async def randstats(self, ctx: commands.Context) -> None:
+        """ Roll random Ability Scores
+        Roll 4d6 six times, dropping the lowest from each. 
+        Sum each and the total of all.
+
+        Settings - Save upper and lower bounds, repeat the function if outside
+        """
+    @commands.hybrid_command()
     async def roll(self, ctx: commands.Context, *, roll: str) -> None:
         """Perform die roll based on a dice formula.
 
@@ -183,8 +191,17 @@ class Dice(commands.Cog):
             pyhedrals.SyntaxErrorException,
             pyhedrals.UnknownCharacterException,
         ) as exception:
-            await ctx.send(
-                error(
-                    f"{ctx.message.author.mention}, I couldn't parse your dice formula:\n`{exception!s}`"
-                )
-            )
+                # Check if the context is from an interaction (slash command)
+                if ctx.interaction:
+                    await ctx.send(
+                        error(
+                            f"{ctx.author.mention}, I couldn't parse your dice formula:\n`{exception!s}`"
+                        ),
+                        ephemeral=True
+                    )
+                else:
+                    await ctx.send(
+                        error(
+                            f"{ctx.author.mention}, I couldn't parse your dice formula:\n`{exception!s}`"
+                        )
+                    )

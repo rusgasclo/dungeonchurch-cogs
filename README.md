@@ -25,6 +25,4 @@ Finally, load your cog(s):
 
 # Cogs
 ## dice
-* Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs)
-* Renamed command to `[p]roll`
-* Registered as hybrid slash command
+Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs)
