@@ -1,0 +1,17 @@
+{
+    "name": "DungeonChurch",
+    "author": [
+        "DM Brad"
+    ],
+    "short": "Dungeon Church's cogs for RPG games",
+    "description": "Useful cogs for running D&D or RPG game servers.",
+    "tags": 
+        [
+            "rpg",
+            "dice",
+            "dnd",
+            "gaming",
+            "ttrpg"
+        ],
+    "install_msg": "Thank you for installing my repo!\nFor more information on my cogs, or to report any bugs/suggestions, go to my GitHub here: <https://github.com/oakbrad/dungeonchurch-cogs>."
+}
