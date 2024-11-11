@@ -2,7 +2,7 @@
     <img width="650" src="https://raw.githubusercontent.com/oakbrad/dungeonchurch/refs/heads/main/logo-chrome.png">
 </p>
 
-Red Bot cogs useful for RPG gaming groups.
+[Red-DiscordBot](https://github.com/Cog-Creators/Red-DiscordBot/releases) cogs for my D&D [RPG group](https://www.dungeon.church).
 
 ----
 To add these cogs to your instance, run this command first (`[p]` is your bot prefix):
@@ -25,4 +25,6 @@ Finally, load your cog(s):
 
 # Cogs
 ## dice
-Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs)
+* Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs)
+* Renamed command to `[p]roll`
+* Registered as hybrid slash command

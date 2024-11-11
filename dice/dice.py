@@ -20,8 +20,8 @@ MAX_MESSAGE_LENGTH = 2000
 class Dice(commands.Cog):
     """Perform complex dice rolling."""
 
-    __author__ = "PhasecoreX"
-    __version__ = "2.1.0"
+    __author__ = "PhasecoreX & DM Brad"
+    __version__ = "2.1.0.1"
 
     default_global_settings: ClassVar[dict[str, int]] = {
         "max_dice_rolls": 10000,
@@ -137,8 +137,8 @@ class Dice(commands.Cog):
     # Command methods
     #
 
-    @commands.command()
-    async def dice(self, ctx: commands.Context, *, roll: str) -> None:
+    @commands.hybrid_command()
+    async def roll(self, ctx: commands.Context, *, roll: str) -> None:
         """Perform die roll based on a dice formula.
 
         The [PyHedrals](https://github.com/StarlitGhost/pyhedrals) library is used for dice formula parsing.
