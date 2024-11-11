@@ -145,6 +145,7 @@ class Dice(commands.Cog):
 
         Settings - Save upper and lower bounds, repeat the function if outside
         """
+        pass
     @commands.hybrid_command()
     async def roll(self, ctx: commands.Context, *, roll: str) -> None:
         """Perform die roll based on a dice formula.
@@ -191,17 +192,17 @@ class Dice(commands.Cog):
             pyhedrals.SyntaxErrorException,
             pyhedrals.UnknownCharacterException,
         ) as exception:
-                # Check if the context is from an interaction (slash command)
-                if ctx.interaction:
-                    await ctx.send(
-                        error(
-                            f"{ctx.author.mention}, I couldn't parse your dice formula:\n`{exception!s}`"
-                        ),
-                        ephemeral=True
+            # Check if the context is from an interaction (slash command)
+            if ctx.interaction:
+                await ctx.send(
+                    error(
+                        f"{ctx.author.mention}, I couldn't parse your dice formula:\n`{exception!s}`"
+                    ),
+                    ephemeral=True
+                )
+            else:
+                await ctx.send(
+                    error(
+                        f"{ctx.author.mention}, I couldn't parse your dice formula:\n`{exception!s}`"
                     )
-                else:
-                    await ctx.send(
-                        error(
-                            f"{ctx.author.mention}, I couldn't parse your dice formula:\n`{exception!s}`"
-                        )
-                    )
+                )
