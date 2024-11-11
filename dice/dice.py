@@ -1,4 +1,7 @@
-"""Dice cog for Red-DiscordBot by PhasecoreX."""
+"""
+Dice cog for Red-DiscordBot by PhasecoreX.
+Modified by DM Brad for use with RPGs
+"""
 
 import asyncio
 import re
@@ -12,10 +15,10 @@ from redbot.core.utils.chat_formatting import error, question, success
 from redbot.core.utils.predicates import MessagePredicate
 
 from .pcx_lib import SettingDisplay
+from .dm_lib import emojis, prepend_emoji
 
 MAX_ROLLS_NOTIFY = 1000000
 MAX_MESSAGE_LENGTH = 2000
-
 
 class Dice(commands.Cog):
     """Perform complex dice rolling."""
@@ -145,29 +148,43 @@ class Dice(commands.Cog):
                 maxSides=await self.config.max_die_sides(),
             )
         result = dice_roller.parse("1d20").result
-        roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled **1d20** and got `{result}`"
+        roll_message = f"{emojis['d20']} {ctx.message.author.mention} rolled **1d20** and got `{result}`"
         await ctx.send(roll_message)
 
     @commands.hybrid_command()
     async def dis(self, ctx: commands.Context) -> None:
-        """ Roll with disadvantage """
+        """ Roll 2d20 with disadvantage """
         dice_roller = pyhedrals.DiceRoller(
             maxDice=await self.config.max_dice_rolls(),
             maxSides=await self.config.max_die_sides(),
         )  
-        result = dice_roller.parse("2d20dh").result
-        roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled with **disadvantage** and got `{result}`"
+        roll = dice_roller.parse("2d20dh")
+        first_roll, second_roll = [die.value for die in roll.rolls[0].rolls]
+        if first_roll == roll.result:
+            first_roll = str(f"`{first_roll}`")
+            second_roll = str(f"~~ {second_roll} ~~")
+        else:
+            second_roll = str(f"`{second_roll}`")
+            first_roll = str(f"~~ {first_roll} ~~")         
+        roll_message = f"{emojis['fail']} {ctx.message.author.mention} rolled **2d20dh** and got {first_roll} {second_roll}"
         await ctx.send(roll_message)
 
     @commands.hybrid_command()
     async def adv(self, ctx: commands.Context) -> None:
-        """ Roll with advantage """
+        """ Roll 2d20 with advantage """
         dice_roller = pyhedrals.DiceRoller(
             maxDice=await self.config.max_dice_rolls(),
             maxSides=await self.config.max_die_sides(),
         )  
-        result = dice_roller.parse("2d20dl").result
-        roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled with **advantage** and got `{result}`"
+        roll = dice_roller.parse("2d20dl")
+        first_roll, second_roll = [die.value for die in roll.rolls[0].rolls]
+        if first_roll == roll.result:
+            first_roll = str(f"`{first_roll}`")
+            second_roll = str(f"~~ {second_roll} ~~")
+        else:
+            second_roll = str(f"`{second_roll}`")
+            first_roll = str(f"~~ {first_roll} ~~")         
+        roll_message = f"{emojis['crit']} {ctx.message.author.mention} rolled **2d20dl** and got {first_roll} {second_roll}"
         await ctx.send(roll_message)
 
     @commands.hybrid_command()
@@ -187,9 +204,15 @@ class Dice(commands.Cog):
             roll_message = ""
             for _ in range(6):
                 result = dice_roller.parse("4d6dl")
-                roll_message += f"🎲 {list(result.rolls)[0]}\n"
+                roll_message += f"> {emojis['d6']} {list(result.rolls)[0]}\n"
                 total += result.result
-            roll_message += f"**TOTAL:** {total}"
+            roll_message = roll_message. replace(",", ", ") # fix commas
+            roll_message = re.sub(r'(\b\d+d(20|12|10|8|6|4)):', r'**\1**:', roll_message) # bold dice notation
+            roll_message = self.DROPPED_RE.sub(r"~~\1~~", roll_message) # strike dropped
+            roll_message = re.sub(r'\((\d+)\)', r'= `\1`', roll_message) # = result
+            if not ctx.interaction: # if using [p] text command, prepend provenance
+                roll_message = f":crossed_swords: {ctx.message.author.mention} rolled Ability Scores:\n" + roll_message # prepend
+            roll_message += f"**=** `{total}`" # append
             await ctx.send(roll_message)
         except (
             ValueError,
@@ -233,9 +256,12 @@ class Dice(commands.Cog):
                 maxSides=await self.config.max_die_sides(),
             )
             result = dice_roller.parse(roll)
-            roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled {roll} and got **{result.result}**"
+            # Roll Message
+            roll_message = f"{ctx.message.author.mention} rolled `{roll}`" # prepend provenance
+            if not ctx.interaction: # if using [p] text command
+                await ctx.message.delete() # delete triggering message
             if len(roll_message) > MAX_MESSAGE_LENGTH:
-                roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled that and got **{result.result}**"
+                roll_message = f"{ctx.message.author.mention} roll = `{result.result}`"
             if len(roll_message) > MAX_MESSAGE_LENGTH:
                 await ctx.send(
                     error(
@@ -243,14 +269,24 @@ class Dice(commands.Cog):
                     )
                 )
                 return
-            roll_log = "\n".join(result.strings())
+            # Format roll log
+            roll_log = "\n ".join(result.strings())
             roll_log = self.DROPPED_EXPLODED_RE.sub(r"~~**\1!**~~", roll_log)
             roll_log = self.EXPLODED_RE.sub(r"**\1!**", roll_log)
             roll_log = self.DROPPED_RE.sub(r"~~\1~~", roll_log)
-            roll_log = roll_log.replace(",", ", ")
+            roll_log = roll_log.replace(",", "+")
+            roll_log = re.sub(r'(\b\d+d(20|12|10|8|6|4)):', r'**\1**:', roll_log) # bold dice notation
+            roll_log = re.sub(r'\((\d+)\)', r'= \1', roll_log) # = result
+            # emojis at beginning of line
+            roll_log = re.sub(r'\*\*(\d+(d(20|12|10|8|6|4)))\*\*:', prepend_emoji, roll_log)
+            # format into quotes
+            roll_log = roll_log.replace("\n","\n>")
+            roll_log = "\n> " + roll_log # add quote to beginning
+            # result line
+            result_string = f"\n** = `{result.result}`**"
             if len(roll_message) + len(roll_log) > MAX_MESSAGE_LENGTH:
-                roll_log = "*(Roll log too long to display)*"
-            await ctx.send(f"{roll_message}\n{roll_log}")
+                roll_log = "> *(Roll log too long to display)*"
+            await ctx.send(f"{roll_message} {roll_log} {result_string}")
         except (
             ValueError,
             NotImplementedError,
