@@ -138,6 +138,39 @@ class Dice(commands.Cog):
     #
 
     @commands.hybrid_command()
+    async def qr(self, ctx: commands.Context) -> None:
+        """ Quick roll 1d20 """
+        dice_roller = pyhedrals.DiceRoller(
+                maxDice=await self.config.max_dice_rolls(),
+                maxSides=await self.config.max_die_sides(),
+            )
+        result = dice_roller.parse("1d20").result
+        roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled **1d20** and got `{result}`"
+        await ctx.send(roll_message)
+
+    @commands.hybrid_command()
+    async def dis(self, ctx: commands.Context) -> None:
+        """ Roll with disadvantage """
+        dice_roller = pyhedrals.DiceRoller(
+            maxDice=await self.config.max_dice_rolls(),
+            maxSides=await self.config.max_die_sides(),
+        )  
+        result = dice_roller.parse("2d20dh").result
+        roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled with **disadvantage** and got `{result}`"
+        await ctx.send(roll_message)
+
+    @commands.hybrid_command()
+    async def adv(self, ctx: commands.Context) -> None:
+        """ Roll with advantage """
+        dice_roller = pyhedrals.DiceRoller(
+            maxDice=await self.config.max_dice_rolls(),
+            maxSides=await self.config.max_die_sides(),
+        )  
+        result = dice_roller.parse("2d20dl").result
+        roll_message = f"\N{GAME DIE} {ctx.message.author.mention} rolled with **advantage** and got `{result}`"
+        await ctx.send(roll_message)
+
+    @commands.hybrid_command()
     async def randstats(self, ctx: commands.Context) -> None:
         """ Roll random Ability Scores
         Roll 4d6 six times, drop the lowest from each
@@ -151,11 +184,13 @@ class Dice(commands.Cog):
                 maxSides=await self.config.max_die_sides(),
             )
             total = 0
+            roll_message = ""
             for _ in range(6):
                 result = dice_roller.parse("4d6dl")
-                await ctx.send(f"🎲 {list(result.rolls)[0]}")
+                roll_message += f"🎲 {list(result.rolls)[0]}\n"
                 total += result.result
-            await ctx.send(f"**TOTAL:** {total}")
+            roll_message += f"**TOTAL:** {total}"
+            await ctx.send(roll_message)
         except (
             ValueError,
             NotImplementedError,
