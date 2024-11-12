@@ -1,6 +1,6 @@
 """
 Dice cog for Red-DiscordBot by PhasecoreX.
-Modified by DM Brad for use with RPGs
+Modified by DM Brad of WWW.DUNGEON.CHURCH for use with RPGs
 """
 
 import asyncio
@@ -166,7 +166,7 @@ class Dice(commands.Cog):
             return
         else:
             await self.config.randstats_min.set(new_value)
-            await ctx.send(f"The minimum for randstats has been changed from `{current_max}` to `{new_value}`")
+            await ctx.send(f"The minimum for randstats has been changed from `{current_min}` to `{new_value}`")
 
     #
     # Command methods
@@ -229,20 +229,31 @@ class Dice(commands.Cog):
                 maxDice=await self.config.max_dice_rolls(),
                 maxSides=await self.config.max_die_sides(),
             )
+            min_total = await self.config.randstats_min()
+            max_total = await self.config.randstats_max()
             total = 0
             roll_message = ""
-            for _ in range(6):
-                result = dice_roller.parse("4d6dl")
-                roll_message += f"> {emojis['d6']} {list(result.rolls)[0]}\n"
-                total += result.result
-            roll_message = roll_message. replace(",", ", ") # fix commas
-            roll_message = re.sub(r'(\b\d+d(20|12|10|8|6|4)):', r'**\1**:', roll_message) # bold dice notation
-            roll_message = self.DROPPED_RE.sub(r"~~\1~~", roll_message) # strike dropped
-            roll_message = re.sub(r'\((\d+)\)', r'= `\1`', roll_message) # = result
-            if not ctx.interaction: # if using [p] text command, prepend provenance
-                await ctx.message.delete() # delete triggering message
-                roll_message = f":crossed_swords: {ctx.message.author.mention} rolled Ability Scores:\n" + roll_message # prepend
-            roll_message += f"**=** `{total}`" # append
+            # Roll until the total is within the min and max range
+            while total <= min_total or total >= max_total:
+                total = 0
+                roll_message = ""
+                for _ in range(6):
+                    result = dice_roller.parse("4d6dl")
+                    roll_message += f"> {emojis['d6']} {list(result.rolls)[0]}\n"
+                    total += result.result
+
+                # Format the roll message for readability
+                roll_message = roll_message.replace(",", ", ")  # fix commas
+                roll_message = re.sub(r'(\b\d+d(20|12|10|8|6|4)):', r'**\1**:', roll_message)  # bold dice notation
+                roll_message = self.DROPPED_RE.sub(r"~~\1~~", roll_message)  # strike dropped
+                roll_message = re.sub(r'\((\d+)\)', r'= `\1`', roll_message)  # = result
+        
+            # Prepend provenance if using text command
+            if not ctx.interaction: 
+                await ctx.message.delete()
+                roll_message = f":crossed_swords: {ctx.message.author.mention} rolled Ability Scores:\n" + roll_message
+            roll_message += f"**=** `{total}`"  # append total
+            
             await ctx.send(roll_message)
         except (
             ValueError,
@@ -251,19 +262,13 @@ class Dice(commands.Cog):
             pyhedrals.SyntaxErrorException,
             pyhedrals.UnknownCharacterException,
         ) as exception:
+            error_message = (
+                f"{ctx.author.mention}, something went wrong:\n`{exception!s}`"
+            )
             if ctx.interaction:
-                await ctx.send(
-                    error(
-                        f"{ctx.author.mention}, something went wrong:\n`{exception!s}`"
-                    ),
-                    ephemeral=True
-                )
+                await ctx.send(error_message, ephemeral=True)
             else:
-                await ctx.send(
-                    error(
-                        f"{ctx.author.mention}, something went wrong:\n`{exception!s}`"
-                    )
-                )
+                await ctx.send(error_message)
 
     @commands.hybrid_command()
     async def roll(self, ctx: commands.Context, *, roll: str) -> None:
