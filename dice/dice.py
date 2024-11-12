@@ -211,6 +211,7 @@ class Dice(commands.Cog):
             roll_message = self.DROPPED_RE.sub(r"~~\1~~", roll_message) # strike dropped
             roll_message = re.sub(r'\((\d+)\)', r'= `\1`', roll_message) # = result
             if not ctx.interaction: # if using [p] text command, prepend provenance
+                await ctx.message.delete() # delete triggering message
                 roll_message = f":crossed_swords: {ctx.message.author.mention} rolled Ability Scores:\n" + roll_message # prepend
             roll_message += f"**=** `{total}`" # append
             await ctx.send(roll_message)
