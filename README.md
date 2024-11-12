@@ -1,8 +1,11 @@
 <p align="center">
-    <img width="650" src="https://raw.githubusercontent.com/oakbrad/dungeonchurch/refs/heads/main/logo-chrome.png">
+    <img width="650" src="logo-chrome-red.png">
 </p>
 
-[Red-DiscordBot](https://github.com/Cog-Creators/Red-DiscordBot/releases) cogs for my D&D [RPG group](https://www.dungeon.church).
+# Dungeon Church Cogs
+[Red-DiscordBot](https://github.com/Cog-Creators/Red-DiscordBot/releases) cogs for [Dungeon Church](https://www.dungeon.church).
+
+Focused on RPG & D&D related things, ideas or pull requests welcome.
 
 ----
 To add these cogs to your instance, run this command first (`[p]` is your bot prefix):
@@ -24,14 +27,19 @@ Finally, load your cog(s):
 ```
 
 # Cogs
+## augury
+A simple fortune teller roller that transforms into a customizable NPC ritual when you add an OpenAI API key.
+* `/augury` make an appeal to the gods
 ## dice
-Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs), I added better formatting, emojis, and some extra commands for RPG players.
+Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs). I added better formatting, emojis, and some extra commands for RPG players.
 * `/roll` roll complicated [dice formulas](https://github.com/StarlitGhost/pyhedrals)
-* `/randstats` roll ability scores within a set range
 * `/qr [mod]` quick roll 1d20
 * `/adv [mod]` quick roll 2d20dl
 * `/dis [mod]` quick roll 2d20dh
+* `/randstats` roll ability scores within a set range
 * `/flipcoin` flip a coin, get heads or tails
 * `/eightball` ask the Magic 8 Ball
+* `/diceset` to change settings
 ## randomstatus
 Make a list of status activities, then cycle through them randomly or sequentially at a set interval.
+* `/randomstatus` to change settings
