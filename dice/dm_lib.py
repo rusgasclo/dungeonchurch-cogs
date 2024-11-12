@@ -15,6 +15,13 @@ emojis = {
     "eightball": ":8ball:"
 }
 
+augury_answers = [
+    "Woe",
+    "Weal",
+    "Woe & Weal",
+    "Nothing"
+]
+
 eightball_messages = [
     "It is certain",
     "It is decidely so",
