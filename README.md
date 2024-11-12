@@ -31,6 +31,7 @@ Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs), I added better for
 * `/qr [mod]` quick roll 1d20
 * `/adv [mod]` quick roll 2d20dl
 * `/dis [mod]` quick roll 2d20dh
-* `/flipcoin` roll 1d2, get heads or tails
+* `/flipcoin` flip a coin, get heads or tails
+* `/eightball` ask the Magic 8 Ball
 ## randomstatus
 Make a list of status activities, then cycle through them randomly or sequentially at a set interval.

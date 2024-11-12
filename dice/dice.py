@@ -14,7 +14,7 @@ from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import error, question, success
 from redbot.core.utils.predicates import MessagePredicate
 
-from .dm_lib import emojis, prepend_emoji
+from .dm_lib import emojis, prepend_emoji, eightball_messages
 
 MAX_ROLLS_NOTIFY = 1000000
 MAX_MESSAGE_LENGTH = 2000
@@ -189,7 +189,7 @@ class Dice(commands.Cog):
 
     @commands.hybrid_command()
     async def flipcoin(self, ctx: commands.Context) -> None:
-        """ Roll 1d2, return heads or tails """
+        """Flip coin, heads or tails """
         dice_roller = pyhedrals.DiceRoller(
                 maxDice=await self.config.max_dice_rolls(),
                 maxSides=await self.config.max_die_sides(),
@@ -199,7 +199,21 @@ class Dice(commands.Cog):
             coin = "heads"
         else:
             coin = "tails"
-        roll_message = f"{emojis['d2']} {ctx.message.author.mention} flipped a coin and got `{coin}`."
+        roll_message = f"{emojis['d2']} {ctx.message.author.mention} flipped a coin and got `{coin}`"
+        await ctx.send(roll_message)
+        if not ctx.interaction: # if using [p] text command
+            await ctx.message.delete() # delete triggering message
+
+    @commands.hybrid_command()
+    async def eightball(self, ctx: commands.Context) -> None:
+        """Get an answer from the Magic 8 Ball"""
+        dice_roller = pyhedrals.DiceRoller(
+                maxDice=await self.config.max_dice_rolls(),
+                maxSides=await self.config.max_die_sides(),
+            )
+        result = dice_roller.parse("1d20").result
+        answer = eightball_messages[result-1]
+        roll_message = f"{emojis['eightball']} {ctx.message.author.mention} asked the **Magic 8 Ball** and got: `{answer}`"
         await ctx.send(roll_message)
         if not ctx.interaction: # if using [p] text command
             await ctx.message.delete() # delete triggering message
