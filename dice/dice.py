@@ -14,7 +14,6 @@ from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import error, question, success
 from redbot.core.utils.predicates import MessagePredicate
 
-from .pcx_lib import SettingDisplay
 from .dm_lib import emojis, prepend_emoji
 
 MAX_ROLLS_NOTIFY = 1000000
@@ -70,12 +69,11 @@ class Dice(commands.Cog):
     @diceset.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
-        global_section = SettingDisplay("Global Settings")
-        global_section.add(
-            "Maximum number of dice to roll at once", await self.config.max_dice_rolls()
-        )
-        global_section.add("Maximum sides per die", await self.config.max_die_sides())
-        await ctx.send(str(global_section))
+        max_sides = await self.config.max_die_sides()
+        max_rolls = await self.config.max_dice_rolls()
+        randstats_min = await self.config.randstats_min()
+        randstats_max = await self.config.randstats_max()
+        await ctx.send(f"# Current Settings\n* **Max Dice Sides:** `{max_sides}`\n* **Max Dice Rolls:** `{max_rolls}`\n* **Randstats Max:** `{randstats_max}`\n* **Randstats Min:** `{randstats_min}`")
 
     @diceset.command()
     async def rolls(self, ctx: commands.Context, maximum: int) -> None:
