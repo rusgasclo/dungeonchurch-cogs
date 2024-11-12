@@ -188,6 +188,23 @@ class Dice(commands.Cog):
             await ctx.message.delete() # delete triggering message
 
     @commands.hybrid_command()
+    async def flipcoin(self, ctx: commands.Context) -> None:
+        """ Roll 1d2, return heads or tails """
+        dice_roller = pyhedrals.DiceRoller(
+                maxDice=await self.config.max_dice_rolls(),
+                maxSides=await self.config.max_die_sides(),
+            )
+        result = dice_roller.parse("1d2").result
+        if result == 1:
+            coin = "heads"
+        else:
+            coin = "tails"
+        roll_message = f"{emojis['d2']} {ctx.message.author.mention} flipped a coin and got `{coin}`."
+        await ctx.send(roll_message)
+        if not ctx.interaction: # if using [p] text command
+            await ctx.message.delete() # delete triggering message
+
+    @commands.hybrid_command()
     async def dis(self, ctx: commands.Context, modifier: int = 0) -> None:
         """ Roll 2d20 with disadvantage """
         dice_roller = pyhedrals.DiceRoller(

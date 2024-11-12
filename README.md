@@ -27,9 +27,10 @@ Finally, load your cog(s):
 ## dice
 Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs), I added better formatting, emojis, and some extra commands for RPG players.
 * `/roll` roll complicated [dice formulas](https://github.com/StarlitGhost/pyhedrals)
-* `/randstats` roll ability scores
+* `/randstats` roll ability scores within a set range
 * `/qr [mod]` quick roll 1d20
 * `/adv [mod]` quick roll 2d20dl
 * `/dis [mod]` quick roll 2d20dh
+* `/flipcoin` roll 1d2, get heads or tails
 ## randomstatus
-Make a list of status activites, then cycle through them randomly or sequentially at a set interval.
+Make a list of status activities, then cycle through them randomly or sequentially at a set interval.
