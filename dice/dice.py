@@ -276,10 +276,10 @@ class Dice(commands.Cog):
             roll_log = self.EXPLODED_RE.sub(r"**\1!**", roll_log)
             roll_log = self.DROPPED_RE.sub(r"~~\1~~", roll_log)
             roll_log = roll_log.replace(",", "+")
-            roll_log = re.sub(r'(\b\d+d(20|12|10|8|6|4)):', r'**\1**:', roll_log) # bold dice notation
+            roll_log = re.sub(r'(\b\d+d(20|12|10|8|6|4|2)):', r'**\1**:', roll_log) # bold dice notation
             roll_log = re.sub(r'\((\d+)\)', r'= \1', roll_log) # = result
             # emojis at beginning of line
-            roll_log = re.sub(r'\*\*(\d+(d(20|12|10|8|6|4)))\*\*:', prepend_emoji, roll_log)
+            roll_log = re.sub(r'\*\*(\d+(d(20|12|10|8|6|4|2)))\*\*:', prepend_emoji, roll_log)
             # format into quotes
             roll_log = roll_log.replace("\n","\n>")
             roll_log = "\n> " + roll_log # add quote to beginning
