@@ -29,6 +29,8 @@ class Dice(commands.Cog):
     default_global_settings: ClassVar[dict[str, int]] = {
         "max_dice_rolls": 10000,
         "max_die_sides": 10000,
+        "randstats_max": 78,
+        "randstats_min": 66
     }
     DROPPED_EXPLODED_RE = re.compile(r"-\*(\d+)\*-")
     EXPLODED_RE = re.compile(r"\*(\d+)\*")
@@ -39,7 +41,7 @@ class Dice(commands.Cog):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(
-            self, identifier=1224364860, force_registration=True
+            self, identifier=1224364861, force_registration=True
         )
         self.config.register_global(**self.default_global_settings)
 
@@ -135,6 +137,36 @@ class Dice(commands.Cog):
                 f"Maximum die sides is now set to {await self.config.max_die_sides()}"
             )
         )
+    
+    @diceset.command(name="randstats_max")
+    async def randstats_max(self, ctx: commands.Context, new_value: int = None):
+        """Define maximum total value of randstats array.
+        
+        A standard array is 72 total points. This defines the upper limit of the range that is allowed to be rolled.
+        """   
+        current_max = await self.config.randstats_max()
+        current_min = await self.config.randstats_min()
+        if new_value < current_min:
+            await ctx.send(f"You have to set the new max to be greater than the current min of `{current_min}`.")
+            return
+        else:
+            await self.config.randstats_max.set(new_value)
+            await ctx.send(f"The maximum for randstats has been changed from `{current_max}` to `{new_value}`")
+
+    @diceset.command(name="randstats_min")
+    async def randstats_min(self, ctx: commands.Context, new_value: int = None):
+        """Define minimum total value of randstats array.
+        
+        A standard array is 72 total points. This defines the lower limit of the range that is allowed to be rolled.
+        """   
+        current_max = await self.config.randstats_max()
+        current_min = await self.config.randstats_min()
+        if new_value > current_max:
+            await ctx.send(f"You have to set the new min to be greater than the current max of `{current_max}`.")
+            return
+        else:
+            await self.config.randstats_min.set(new_value)
+            await ctx.send(f"The minimum for randstats has been changed from `{current_max}` to `{new_value}`")
 
     #
     # Command methods
@@ -190,10 +222,7 @@ class Dice(commands.Cog):
     @commands.hybrid_command()
     async def randstats(self, ctx: commands.Context) -> None:
         """ Roll random Ability Scores
-        Roll 4d6 six times, drop the lowest from each
-        Sum each and the total of all.
-
-        Settings - Save upper and lower bounds, repeat the function if outside
+        Roll 4d6 six times, drop the lowest, and sum each.
         """
         try:
             dice_roller = pyhedrals.DiceRoller(
