@@ -171,18 +171,24 @@ class Dice(commands.Cog):
     #
 
     @commands.hybrid_command()
-    async def qr(self, ctx: commands.Context) -> None:
+    async def qr(self, ctx: commands.Context, modifier: int = 0) -> None:
         """ Quick roll 1d20 """
         dice_roller = pyhedrals.DiceRoller(
                 maxDice=await self.config.max_dice_rolls(),
                 maxSides=await self.config.max_die_sides(),
             )
         result = dice_roller.parse("1d20").result
-        roll_message = f"{emojis['d20']} {ctx.message.author.mention} rolled **1d20** and got `{result}`"
+        total = result + modifier
+        roll_message = f"{emojis['d20']} {ctx.message.author.mention} rolled **1d20"
+        if modifier != 0:
+            roll_message += f" + {modifier}"
+        roll_message += f"** and got `{total}`"
         await ctx.send(roll_message)
+        if not ctx.interaction: # if using [p] text command
+            await ctx.message.delete() # delete triggering message
 
     @commands.hybrid_command()
-    async def dis(self, ctx: commands.Context) -> None:
+    async def dis(self, ctx: commands.Context, modifier: int = 0) -> None:
         """ Roll 2d20 with disadvantage """
         dice_roller = pyhedrals.DiceRoller(
             maxDice=await self.config.max_dice_rolls(),
@@ -190,17 +196,26 @@ class Dice(commands.Cog):
         )  
         roll = dice_roller.parse("2d20dh")
         first_roll, second_roll = [die.value for die in roll.rolls[0].rolls]
+        result = roll.result + modifier
         if first_roll == roll.result:
             first_roll = str(f"`{first_roll}`")
             second_roll = str(f"~~ {second_roll} ~~")
         else:
             second_roll = str(f"`{second_roll}`")
             first_roll = str(f"~~ {first_roll} ~~")         
-        roll_message = f"{emojis['fail']} {ctx.message.author.mention} rolled **2d20dh** and got {first_roll} {second_roll}"
+        roll_message = f"{emojis['fail']} {ctx.author.mention} rolled **2d20dh"
+        if modifier != 0:
+            roll_message += f"+{modifier}"
+        roll_message += f"** and got {first_roll} {second_roll}"
+        if modifier != 0:
+            roll_message += f" + {modifier}"
+        roll_message += f" = `{result}`"
         await ctx.send(roll_message)
+        if not ctx.interaction: # if using [p] text command
+            await ctx.message.delete() # delete triggering message
 
     @commands.hybrid_command()
-    async def adv(self, ctx: commands.Context) -> None:
+    async def adv(self, ctx: commands.Context, modifier: int = 0) -> None:
         """ Roll 2d20 with advantage """
         dice_roller = pyhedrals.DiceRoller(
             maxDice=await self.config.max_dice_rolls(),
@@ -208,14 +223,23 @@ class Dice(commands.Cog):
         )  
         roll = dice_roller.parse("2d20dl")
         first_roll, second_roll = [die.value for die in roll.rolls[0].rolls]
+        result = roll.result + modifier
         if first_roll == roll.result:
             first_roll = str(f"`{first_roll}`")
             second_roll = str(f"~~ {second_roll} ~~")
         else:
             second_roll = str(f"`{second_roll}`")
             first_roll = str(f"~~ {first_roll} ~~")         
-        roll_message = f"{emojis['crit']} {ctx.message.author.mention} rolled **2d20dl** and got {first_roll} {second_roll}"
+        roll_message = f"{emojis['crit']} {ctx.author.mention} rolled **2d20dl"
+        if modifier != 0:
+            roll_message += f"+{modifier}"
+        roll_message += f"** and got {first_roll} {second_roll}"
+        if modifier != 0:
+            roll_message += f" + {modifier}"
+        roll_message += f" = `{result}`"
         await ctx.send(roll_message)
+        if not ctx.interaction: # if using [p] text command
+            await ctx.message.delete() # delete triggering message
 
     @commands.hybrid_command()
     async def randstats(self, ctx: commands.Context) -> None:
