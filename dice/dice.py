@@ -271,7 +271,7 @@ class Dice(commands.Cog):
                 )
                 return
             # Format roll log
-            roll_log = "\n ".join(result.strings())
+            roll_log = "\n ".join(list(result.strings()))
             roll_log = self.DROPPED_EXPLODED_RE.sub(r"~~**\1!**~~", roll_log)
             roll_log = self.EXPLODED_RE.sub(r"**\1!**", roll_log)
             roll_log = self.DROPPED_RE.sub(r"~~\1~~", roll_log)
