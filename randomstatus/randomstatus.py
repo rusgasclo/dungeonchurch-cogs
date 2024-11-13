@@ -84,7 +84,7 @@ class RandomStatus(commands.Cog):
             return        
         # Format each message with a number and display it
         formatted_list = "\n".join(
-            f"{i + 1}. `{self.format_activity_type(activity_type)}` {message}"
+            f"{i + 1}. `{self._format_activity_type(activity_type)}` {message}"
             for i, (activity_type, message) in enumerate(status_messages)
         )
         await ctx.send(f"## Configured Status Messages:\n{formatted_list}")
@@ -98,7 +98,7 @@ class RandomStatus(commands.Cog):
             return
         removed_message = status_messages.pop(index - 1) # Account for zero index
         await self.config.status_messages.set(status_messages)
-        await ctx.send(f"Removed status `{self.format_activity_type(removed_message[0])} {removed_message[1]}`.")
+        await ctx.send(f"Removed status `{self._format_activity_type(removed_message[0])} {removed_message[1]}`.")
 
     @randomstatus.command(name="add")
     async def add(self, ctx, activity: str, *, message: str):
@@ -111,7 +111,7 @@ class RandomStatus(commands.Cog):
         async with self.config.status_messages() as status_messages:
             status_messages.append((activity.lower(), message))
         # Confirm the addition to the user
-        await ctx.send(f"Added new status: `{self.format_activity_type(activity)}` {message}")
+        await ctx.send(f"Added new status: `{self._format_activity_type(activity)}` {message}")
 
     @randomstatus.command(name="order")
     async def order(self, ctx, set: bool = None):
@@ -127,7 +127,7 @@ class RandomStatus(commands.Cog):
             order_type = "random" if new_setting else "sequential"
             await ctx.send(f"Status updates will now follow `{order_type}` order.")
 
-    def format_activity_type(self, activity_type):
+    def _format_activity_type(self, activity_type):
         """Format the activity type to reflect displayed"""
         if activity_type == "listening":
             return "Listening to"
