@@ -44,9 +44,9 @@ class ChurchMod(commands.Cog):
     # For fun
     #
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message, ctx: commands.Context):
+    async def on_message(self, message: discord.Message):
         """React with a beer emoji to messages containing certain keywords."""
-        debug = self.config.guild(ctx.guild).debug_mode()
+        debug = self.config.guild(message.guild).debug_mode()
         if message.author.bot or debug:
             return
         keywords = {"beer", "cheers", "beers", "tavern", "hail", "well met"}
