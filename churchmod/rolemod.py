@@ -11,6 +11,11 @@ async def make_npc(self, member: discord.Member) -> None:
     npc_role = guild.get_role(church_roles["npcs"]) # get role object from ID
     if npc_role and npc_role not in member.roles:
         await member.add_roles(npc_role)
+    if "||" not in (member.nick or member.display_name):
+            # Update the nickname to "Name || NPC"
+            new_nickname = f"{member.display_name} || NPC"
+            await member.edit(nick=new_nickname)
+            logger.info(f"Updated nickname for {member.display_name} to '{new_nickname}'")
 
 async def make_organizer(self, member: discord.Member) -> None:
     """Assign the dungeo organizer role to a member if they don't already have it."""

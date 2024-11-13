@@ -1,8 +1,11 @@
 from redbot.core import commands, Config, checks
+from redbot.core.utils import get_logger    
 from redbot.core.utils.chat_formatting import error, question, success
 import discord
 from .dm_lib import church_channels
 from . import rolemod, onboarding
+
+logger = get_logger("red.churchmod")
 
 class ChurchMod(commands.Cog):
     """Moderation and automation for WWW.DUNGEON.CHURCH role playing group"""
@@ -38,7 +41,7 @@ class ChurchMod(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         """When a new member joins the server..."""
         await onboarding.hail(member)
-        await rolemod.make_npc(member)  
+        await rolemod.make_npc(member)
 
     # 
     # churchmod command group
