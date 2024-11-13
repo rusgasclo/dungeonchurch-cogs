@@ -3,6 +3,7 @@ DUNGEON CHURCH
 Role moderation
 """
 
+import discord  
 from .dm_lib import church_roles, church_channels
 
 async def make_npc(self, member: discord.Member) -> None:

@@ -4,6 +4,7 @@ DUNGEON CHURCH
 Onboarding functions
 """
 from .dm_lib import emojis
+import discord
 
 async def hail(self, member: discord.Member) -> None:
     """Send a public welcome message to new members."""
