@@ -6,7 +6,7 @@ Modified by DM Brad of WWW.DUNGEON.CHURCH for use with RPGs
 import asyncio
 import re
 from contextlib import suppress
-from typing import ClassVar
+from typing import ClassVar, Union
 
 import pyhedrals
 from redbot.core import Config, checks, commands
@@ -25,11 +25,12 @@ class Dice(commands.Cog):
     __author__ = "PhasecoreX & DM Brad"
     __version__ = "2.1.0.1"
 
-    default_global_settings: ClassVar[dict[str, int]] = {
+    default_global_settings: ClassVar[dict[str, Union[int, bool]]] = {
         "max_dice_rolls": 10000,
         "max_die_sides": 10000,
         "randstats_max": 78,
-        "randstats_min": 66
+        "randstats_min": 66,
+        "message_cleanup": False
     }
     DROPPED_EXPLODED_RE = re.compile(r"-\*(\d+)\*-")
     EXPLODED_RE = re.compile(r"\*(\d+)\*")
@@ -73,7 +74,8 @@ class Dice(commands.Cog):
         max_rolls = await self.config.max_dice_rolls()
         randstats_min = await self.config.randstats_min()
         randstats_max = await self.config.randstats_max()
-        await ctx.send(f"# Current Settings\n* **Max Dice Sides:** `{max_sides}`\n* **Max Dice Rolls:** `{max_rolls}`\n* **Randstats Max:** `{randstats_max}`\n* **Randstats Min:** `{randstats_min}`")
+        message_cleanup = await self.config.message_cleanup()
+        await ctx.send(f"# Current Settings\n* **Max Dice Sides:** `{max_sides}`\n* **Max Dice Rolls:** `{max_rolls}`\n* **Randstats Max:** `{randstats_max}`\n* **Randstats Min:** `{randstats_min}`\n* **Message Cleanup:** `{message_cleanup}`")
 
     @diceset.command()
     async def rolls(self, ctx: commands.Context, maximum: int) -> None:
@@ -166,6 +168,24 @@ class Dice(commands.Cog):
             await self.config.randstats_min.set(new_value)
             await ctx.send(f"The minimum for randstats has been changed from `{current_min}` to `{new_value}`")
 
+    @diceset.command(name="cleanup")
+    async def cleanup(self, ctx, set: bool = None):
+        """Set or toggle whether to delete [p] trigger messages.
+        
+        Using the [p] commands can clutter up your chat.
+        Setting this to true deletes the message that triggered the dice roll.
+        """
+        if set is not None:
+            await self.config.message_cleanup.set(set)
+            order_type = "on" if set else "off"
+            await ctx.send(f"Message clean up was turned `{order_type}`.")
+        else:
+            current_setting = await self.config.message_cleanup()
+            new_setting = not current_setting
+            await self.config.message_cleanup.set(new_setting)
+            order_type = "on" if new_setting else "off"
+            await ctx.send(f"Message clean up was toggled `{order_type}`.")
+
     #
     # Command methods
     #
@@ -184,8 +204,9 @@ class Dice(commands.Cog):
             roll_message += f" + {modifier}"
         roll_message += f"** and got `{total}`"
         await ctx.send(roll_message)
-        if not ctx.interaction: # if using [p] text command
-            await ctx.message.delete() # delete triggering message
+        # Clean up prefix messages according to setting
+        if not ctx.interaction and await self.config.message_cleanup():
+            await ctx.message.delete() 
 
     @commands.hybrid_command()
     async def flipcoin(self, ctx: commands.Context) -> None:
@@ -201,8 +222,9 @@ class Dice(commands.Cog):
             coin = "tails"
         roll_message = f"{emojis['d2']} {ctx.message.author.mention} flipped a coin and got `{coin}`"
         await ctx.send(roll_message)
-        if not ctx.interaction: # if using [p] text command
-            await ctx.message.delete() # delete triggering message
+       # Clean up prefix messages according to setting
+        if not ctx.interaction and await self.config.message_cleanup():
+            await ctx.message.delete() 
 
     @commands.hybrid_command()
     async def eightball(self, ctx: commands.Context) -> None:
@@ -215,8 +237,9 @@ class Dice(commands.Cog):
         answer = eightball_messages[result-1]
         roll_message = f"{emojis['eightball']} {ctx.message.author.mention} asked the **Magic 8 Ball** and got: `{answer}`"
         await ctx.send(roll_message)
-        if not ctx.interaction: # if using [p] text command
-            await ctx.message.delete() # delete triggering message
+       # Clean up prefix messages according to setting
+        if not ctx.interaction and await self.config.message_cleanup():
+            await ctx.message.delete() 
 
     @commands.hybrid_command()
     async def dis(self, ctx: commands.Context, modifier: int = 0) -> None:
@@ -242,8 +265,9 @@ class Dice(commands.Cog):
             roll_message += f" + {modifier}"
         roll_message += f" = `{result}`"
         await ctx.send(roll_message)
-        if not ctx.interaction: # if using [p] text command
-            await ctx.message.delete() # delete triggering message
+       # Clean up prefix messages according to setting
+        if not ctx.interaction and await self.config.message_cleanup():
+            await ctx.message.delete() 
 
     @commands.hybrid_command()
     async def adv(self, ctx: commands.Context, modifier: int = 0) -> None:
@@ -269,8 +293,9 @@ class Dice(commands.Cog):
             roll_message += f" + {modifier}"
         roll_message += f" = `{result}`"
         await ctx.send(roll_message)
-        if not ctx.interaction: # if using [p] text command
-            await ctx.message.delete() # delete triggering message
+       # Clean up prefix messages according to setting
+        if not ctx.interaction and await self.config.message_cleanup():
+            await ctx.message.delete() 
 
     @commands.hybrid_command()
     async def randstats(self, ctx: commands.Context) -> None:
@@ -294,16 +319,14 @@ class Dice(commands.Cog):
                     result = dice_roller.parse("4d6dl")
                     roll_message += f"> {emojis['d6']} {list(result.rolls)[0]}\n"
                     total += result.result
-
                 # Format the roll message for readability
                 roll_message = roll_message.replace(",", ", ")  # fix commas
                 roll_message = re.sub(r'(\b\d+d(20|12|10|8|6|4)):', r'**\1**:', roll_message)  # bold dice notation
                 roll_message = self.DROPPED_RE.sub(r"~~\1~~", roll_message)  # strike dropped
                 roll_message = re.sub(r'\((\d+)\)', r'= `\1`', roll_message)  # = result
-        
-            # Prepend provenance if using text command
-            if not ctx.interaction: 
-                await ctx.message.delete()
+            # Clean up [p] messages according to setting, prepend author
+            if not ctx.interaction and await self.config.message_cleanup():
+                await ctx.message.delete() 
                 roll_message = f":crossed_swords: {ctx.message.author.mention} rolled Ability Scores:\n" + roll_message
             roll_message += f"**=** `{total}`"  # append total
             
@@ -346,8 +369,9 @@ class Dice(commands.Cog):
             result = dice_roller.parse(roll)
             # Roll Message
             roll_message = f"{ctx.message.author.mention} rolled `{roll}`" # prepend provenance
-            if not ctx.interaction: # if using [p] text command
-                await ctx.message.delete() # delete triggering message
+            # Clean up prefix messages according to setting
+            if not ctx.interaction and await self.config.message_cleanup():
+                await ctx.message.delete() 
             if len(roll_message) > MAX_MESSAGE_LENGTH:
                 roll_message = f"{ctx.message.author.mention} roll = `{result.result}`"
             if len(roll_message) > MAX_MESSAGE_LENGTH:
