@@ -12,7 +12,8 @@ church_channels: dict[str,int] = {
     "bot-testing":841027677737189456,
     "server-log":1224934786234187776,
     "bot-spam":1252130121444360192,
-    "no-players-allowed":1254210583818010816
+    "no-players-allowed":1254210583818010816,
+    "dev-server":1305355121907073106
 }
 
 emojis: dict[str,str] = {
