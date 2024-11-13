@@ -47,10 +47,10 @@ class ChurchMod(commands.Cog):
     async def on_message(self, message: discord.Message):
         """React with a beer emoji to messages containing certain keywords."""
         debug = self.config.guild(message.guild).debug_mode()
-        if message.author.bot or debug:
+        if not debug:
             return
         keywords = {"beer", "cheers", "beers", "tavern", "hail", "well met"}
-        emoji = "🍻"
+        emoji = emojis["beers"]
         if any(keyword in message.content.lower() for keyword in keywords):
             await message.add_reaction(emoji)
 
