@@ -50,8 +50,9 @@ class ChurchMod(commands.Cog):
         if message.author.bot or debug:
             return
         keywords = {"beer", "cheers", "beers", "tavern", "hail", "well met"}
+        emoji = "🍻"
         if any(keyword in message.content.lower() for keyword in keywords):
-            await message.add_reaction(emojis["beer"])
+            await message.add_reaction(emoji)
 
     # 
     # churchmod command group
