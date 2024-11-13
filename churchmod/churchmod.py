@@ -2,6 +2,7 @@ from redbot.core import commands, Config, checks
 from redbot.core.utils.chat_formatting import error, question, success
 import discord
 from .dm_lib import church_channels
+from . import rolemod, onboarding
 
 class ChurchMod(commands.Cog):
     """Moderation and automation for WWW.DUNGEON.CHURCH role playing group"""
@@ -30,15 +31,15 @@ class ChurchMod(commands.Cog):
         await ctx.send(error("*This accursed place is not my [home](https://www.dungeon.church)!*\n--**The Deacon**"))
         return False
     
-    async def _channel(self, channel_name: str, ctx) -> int:
-        """Returns the channel ID based on the environment and debug mode."""
-        if ctx.guild.id == self.server_id[0]:
-            return church_channels["dev-server"]
-        debug_mode = await self.config.guild.debug_mode() 
-        if not debug_mode:
-            return church_channels.get(channel_name, church_channels["server-log"])
-        return church_channels["server-log"]
-    
+    #
+    # Bot Moderation
+    #
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        """When a new member joins the server..."""
+        await onboarding.hail(member)
+        await rolemod.make_npc(member)  
+
     # 
     # churchmod command group
     #
@@ -62,3 +63,14 @@ class ChurchMod(commands.Cog):
         await ctx.send(success(f"`Debug mode was turned {'on' if state else 'off'}.`"))
         return
     
+    #
+    # Internal functions
+    #
+    async def _channel(self, channel_name: str, ctx) -> int:
+        """Returns the channel ID based on the environment and debug mode."""
+        if ctx.guild.id == self.server_id[0]:
+            return church_channels["dev-server"]
+        debug_mode = await self.config.guild.debug_mode() 
+        if not debug_mode:
+            return church_channels.get(channel_name, church_channels["server-log"])
+        return church_channels["server-log"]

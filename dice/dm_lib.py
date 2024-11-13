@@ -16,7 +16,23 @@ church_channels: dict[str,int] = {
     "dev-server":1305355121907073106
 }
 
+church_roles: dict[str,int] = {
+    "dungeon master":828778265933643806,
+    "dungeon organizer":1254211177571942481,
+    "players":828778044767993868,
+    "irl":1238600589164810240,
+    "rsvp":1064993178471641138,
+    "holding":1064993178471641138,
+    "vtt":1238600715262234665,
+    "vtt rsvp":1255726429010923530,
+    "galmaarden":1302890296488628265,
+    "scrying":1249115347651657728,
+    "npcs":1280305840250818590,
+    "mtg":1270544189246931038
+}
+
 emojis: dict[str,str] = {
+    # on dev server
     "d20": "<:d20:1305725872346759238>",
     "d12": "<:d12:1305725832588820520>",
     "d10": "<:d10:1305725811797524561>",
@@ -26,7 +42,8 @@ emojis: dict[str,str] = {
     "d2": "<:d2:1305725666649706537>",
     "crit": "<:critSuccess:1305725915854016512>",
     "fail": "<:critFail:1305725892965961799>",
-    "eightball": ":8ball:"
+    "eightball": ":8ball:",
+    "beers": "<a:beerCheers:1247370686780145756>"# on DC 
 }
 
 augury_answers: list[str] = [
