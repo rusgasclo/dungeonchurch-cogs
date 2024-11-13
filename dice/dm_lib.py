@@ -2,7 +2,20 @@
 Define Emojis as dictionary - references are specific to bot
 TODO - what is best way to share emojis between servers?
 """
-emojis = {
+
+church_channels: dict[str,int] = {
+    "announcements":1153822115104051220,
+    "chat":828777456898277399,
+    "dnd-irl":838674459886878730,
+    "dnd-vtt":1255609889535819826,
+    "campign-planning":1200931885300330626,
+    "bot-testing":841027677737189456,
+    "server-log":1224934786234187776,
+    "bot-spam":1252130121444360192,
+    "no-players-allowed":1254210583818010816
+}
+
+emojis: dict[str,str] = {
     "d20": "<:d20:1305725872346759238>",
     "d12": "<:d12:1305725832588820520>",
     "d10": "<:d10:1305725811797524561>",
@@ -15,14 +28,14 @@ emojis = {
     "eightball": ":8ball:"
 }
 
-augury_answers = [
+augury_answers: list[str] = [
     "Woe",
     "Weal",
     "Woe & Weal",
     "Nothing"
 ]
 
-eightball_messages = [
+eightball_messages: list[str] = [
     "It is certain",
     "It is decidely so",
     "Without a doubt",
@@ -45,7 +58,7 @@ eightball_messages = [
     "Very doubtful"
 ]
 
-def prepend_emoji(match):
+def prepend_emoji(match: str):
     """
     Prepend dice emoji to a string
     match needs to be a die, ie: d20, d10

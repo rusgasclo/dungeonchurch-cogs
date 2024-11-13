@@ -30,6 +30,8 @@ Finally, load your cog(s):
 ## augury
 A simple fortune teller roller that transforms into a customizable NPC ritual when you add an OpenAI API key.
 * `/augury` make an appeal to the gods
+## 🔒 churchmod
+Automation and moderation for our private server.
 ## dice
 Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs). I added better formatting, emojis, and some extra commands for RPG players.
 * `/roll` roll complicated [dice formulas](https://github.com/StarlitGhost/pyhedrals)
