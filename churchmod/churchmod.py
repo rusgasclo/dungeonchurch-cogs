@@ -1,7 +1,7 @@
 from redbot.core import commands, Config, checks  
 from redbot.core.utils.chat_formatting import error, question, success
 import discord
-from .dm_lib import church_channels
+from .dm_lib import church_channels, emojis
 from . import rolemod, onboarding
 
 class ChurchMod(commands.Cog):
@@ -39,6 +39,19 @@ class ChurchMod(commands.Cog):
         """When a new member joins the server..."""
         await onboarding.hail(member)
         await rolemod.make_npc(member)
+
+    #
+    # For fun
+    #
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message, ctx: commands.Context):
+        """React with a beer emoji to messages containing certain keywords."""
+        debug = self.config.guild(ctx.guild).debug_mode()
+        if message.author.bot or debug:
+            return
+        keywords = {"beer", "cheers", "beers", "tavern", "hail", "well met"}
+        if any(keyword in message.content.lower() for keyword in keywords):
+            await message.add_reaction(emojis["beer"])
 
     # 
     # churchmod command group
