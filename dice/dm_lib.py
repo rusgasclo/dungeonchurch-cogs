@@ -28,7 +28,8 @@ church_roles: dict[str,int] = {
     "galmaarden":1302890296488628265,
     "scrying":1249115347651657728,
     "npcs":1280305840250818590,
-    "mtg":1270544189246931038
+    "mtg":1270544189246931038,
+    "test":1306489682489511939 # dev server
 }
 
 emojis: dict[str,str] = {
@@ -43,7 +44,7 @@ emojis: dict[str,str] = {
     "crit": "<:critSuccess:1305725915854016512>",
     "fail": "<:critFail:1305725892965961799>",
     "eightball": ":8ball:",
-    "beers": "<a:beerCheers:1247370686780145756>"# on DC 
+    "beers": "<a:beerCheers:1306152939886481479>"
 }
 
 augury_answers: list[str] = [

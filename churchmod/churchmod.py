@@ -1,8 +1,8 @@
 from redbot.core import commands, Config, checks  
 from redbot.core.utils.chat_formatting import error, question, success
 import discord
-from .dm_lib import church_channels, emojis
-from . import rolemod, onboarding
+from .dm_lib import church_channels, emojis, church_roles
+from . import mod
 
 class ChurchMod(commands.Cog):
     """Moderation and automation for WWW.DUNGEON.CHURCH role playing group"""
@@ -37,19 +37,26 @@ class ChurchMod(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         """When a new member joins the server..."""
-        await onboarding.hail(member)
-        await rolemod.make_npc(member)
+        # Send welcome message
+        await member.guild.get_channel(await self._channel("chat", member.guild)).send(f"{emojis['beers']} Hail and well met, {member.mention}!")
+        # Make NPC
+        await mod.make_npc(member)
 
-    #
-    # For fun
-    #
+    @commands.Cog.listener()
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
+        """Listen for role changes to trigger mod actions."""
+        # NPC ROLE
+        target_role = after.guild.get_role(church_roles["npcs"])
+        if target_role not in before.roles and target_role in after.roles:
+            await mod.name_npc(after)
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """React with a beer emoji to messages containing certain keywords."""
         debug = self.config.guild(message.guild).debug_mode()
         if not debug:
             return
-        keywords = {"beer", "cheers", "beers", "tavern", "hail", "well met"}
+        keywords = {"beer", "cheers", "beers", "tavern", "ghost town"}
         emoji = emojis["beers"]
         if any(keyword in message.content.lower() for keyword in keywords):
             await message.add_reaction(emoji)
@@ -76,15 +83,20 @@ class ChurchMod(commands.Cog):
         await self.config.guild(ctx.guild).debug_mode.set(state)
         await ctx.send(success(f"`Debug mode was turned {'on' if state else 'off'}.`"))
         return
+
+    @churchmod.command()
+    async def test(self, ctx: commands.Context) -> None:
+        """Test a function"""
+        pass
     
     #
     # Internal functions
     #
-    async def _channel(self, channel_name: str, ctx) -> int:
+    async def _channel(self, channel_name: str, guild: discord.Guild) -> int:
         """Returns the channel ID based on the environment and debug mode."""
-        if ctx.guild.id == self.server_id[0]:
+        if guild.id == self.server_id[0]: # dev server
             return church_channels["dev-server"]
-        debug_mode = await self.config.guild.debug_mode() 
-        if not debug_mode:
+        debug = await self.config.guild(guild).debug_mode() 
+        if not debug:
             return church_channels.get(channel_name, church_channels["server-log"])
         return church_channels["server-log"]
