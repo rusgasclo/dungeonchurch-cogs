@@ -13,6 +13,8 @@ church_channels: dict[str,int] = {
     "server-log":1224934786234187776,
     "bot-spam":1252130121444360192,
     "no-players-allowed":1254210583818010816,
+    "scrying-portal":1220458768647852213, # voice
+    "vtt-session":1255751421005926482, # voice
     "dev-server":1305355121907073106
 }
 

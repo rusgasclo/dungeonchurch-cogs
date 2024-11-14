@@ -37,10 +37,9 @@ class ChurchMod(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         """When a new member joins the server..."""
-        # Send welcome message
+        # Send welcome message & make NPC
         await member.guild.get_channel(await self._channel("chat", member.guild)).send(f"{emojis['beers']} Hail and well met, {member.mention}!")
-        # Make NPC
-        await mod.make_npc(member)
+        await member.add_roles(member.guild.get_role(church_roles["npcs"]))
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
@@ -49,6 +48,14 @@ class ChurchMod(commands.Cog):
         target_role = after.guild.get_role(church_roles["npcs"])
         if target_role not in before.roles and target_role in after.roles:
             await mod.name_npc(after)
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        """Listen for when members join or leave a voice channel."""
+        if before.channel is None and after.channel is not None:
+            await member.add_roles(member.guild.get_role(church_roles["scrying"]))
+        else:
+            await member.remove_roles(member.guild.get_role(church_roles["scrying"]))
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -87,7 +94,9 @@ class ChurchMod(commands.Cog):
     @churchmod.command()
     async def test(self, ctx: commands.Context) -> None:
         """Test a function"""
-        pass
+        channels = await self._voice_channels(ctx.guild)
+        await ctx.send(f"CHANNELS: {channels}")
+
     
     #
     # Internal functions
