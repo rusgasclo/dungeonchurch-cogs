@@ -139,6 +139,16 @@ class ChurchMod(commands.Cog):
         await ctx.send(success(f"`Server log mode has been turned {'on' if new_state else 'off'}.`"))
 
     @churchmod.command()
+    async def settings(self, ctx: commands.Context) -> None:
+        """Display current settings."""
+        settings = {
+            "Debug Mode": await self.config.guild(ctx.guild).debug_mode(),
+            "Logging": await self.config.guild(ctx.guild).log_mode()
+        }
+        message = "\n".join([f"- **{key}:** `{value}`" for key, value in settings.items()])
+        await ctx.send(f"# Current Mod Settings\n{message}")
+
+    @churchmod.command()
     async def test(self, ctx: commands.Context) -> None:
         """Test a function"""
         channels = await self._voice_channels(ctx.guild)

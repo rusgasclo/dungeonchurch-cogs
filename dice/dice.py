@@ -70,12 +70,15 @@ class Dice(commands.Cog):
     @diceset.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
-        max_sides = await self.config.max_die_sides()
-        max_rolls = await self.config.max_dice_rolls()
-        randstats_min = await self.config.randstats_min()
-        randstats_max = await self.config.randstats_max()
-        message_cleanup = await self.config.message_cleanup()
-        await ctx.send(f"# Current Settings\n* **Max Dice Sides:** `{max_sides}`\n* **Max Dice Rolls:** `{max_rolls}`\n* **Randstats Max:** `{randstats_max}`\n* **Randstats Min:** `{randstats_min}`\n* **Message Cleanup:** `{message_cleanup}`")
+        settings = {
+            "Max Dice Sides": await self.config.max_die_sides(),
+            "Max Dice Rolls": await self.config.max_dice_rolls(),
+            "Randstats Max": await self.config.randstats_max(),
+            "Randstats Min": await self.config.randstats_min(),
+            "Message Cleanup": await self.config.message_cleanup(),
+        }
+        message = "\n".join([f"- **{key}:** `{value}`" for key, value in settings.items()])
+        await ctx.send(f"# Current Dice Settings\n{message}")
 
     @diceset.command()
     async def rolls(self, ctx: commands.Context, maximum: int) -> None:
