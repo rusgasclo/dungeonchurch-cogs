@@ -37,24 +37,32 @@ class ChurchMod(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         """When a new member joins the server..."""
-        # Send welcome message & make NPC
         await member.guild.get_channel(await self._channel("chat", member.guild)).send(f"{emojis['beers']} Hail and well met, {member.mention}!")
         await member.add_roles(member.guild.get_role(church_roles["npcs"]))
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         """Listen for role changes to trigger mod actions."""
-        # NPC ROLE
         target_role = after.guild.get_role(church_roles["npcs"])
         if target_role not in before.roles and target_role in after.roles:
             await mod.name_npc(after)
-        # HOLDING ROLE
+
         target_role = after.guild.get_role(church_roles["holding"])
         if target_role not in before.roles and target_role in after.roles:
             await after.guild.get_channel(await self._channel("campaign-planning", after.guild)).send(f"### {emojis['rsvpyes']} {after.mention} is <@&{church_roles['holding']}> the date for the next tentative game.")
             await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### {emojis['rsvpyes']} {after.mention} is <@&{church_roles['holding']}> the date for the next tentative game.")
         if target_role in before.roles and target_role not in after.roles:
             await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### {emojis['rsvpno']} {after.mention} is no longer <@&{church_roles['holding']}> the date for the next tentative game.")
+
+        target_role = after.guild.get_role(church_roles["irl"])
+        if target_role not in before.roles and target_role in after.roles:
+            await after.guild.get_channel(await self._channel("dnd-irl", after.guild)).send(f"### :bridge_at_night: {after.mention} has been added as a  <@&{church_roles['irl']}> Bay area player.")
+            await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### :bridge_at_night: {after.mention} has been added as a  <@&{church_roles['irl']}> Bay area player.")
+
+        target_role = after.guild.get_role(church_roles["vtt"])
+        if target_role not in before.roles and target_role in after.roles:
+            await after.guild.get_channel(await self._channel("dnd-vtt", after.guild)).send(f"### <a:partyWizard:1239472274432720929> {after.mention} has been uploaded as a  <@&{church_roles['vtt']}> virtual player.")
+            await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### <a:partyWizard:1239472274432720929> {after.mention} has been added as a  <@&{church_roles['vtt']}> virtual player.")
         
 
     @commands.Cog.listener()
