@@ -47,8 +47,10 @@ emojis: dict[str,str] = {
     "fail": "<:critFail:1305725892965961799>",
     "eightball": ":8ball:",
     "beers": "<a:beerCheers:1306152939886481479>",
+    # on DC server
     "rsvpyes": "<a:rsvpYes:1243008859358892135>",
-    "rsvpno": "<:rsvpNo:1243008858213978164>"
+    "rsvpno": "<:rsvpNo:1243008858213978164>",
+    "dm": "<:dm:1239472394028974080>"
 }
 
 augury_answers: list[str] = [

@@ -63,6 +63,10 @@ class ChurchMod(commands.Cog):
         if target_role not in before.roles and target_role in after.roles:
             await after.guild.get_channel(await self._channel("dnd-vtt", after.guild)).send(f"### <a:partyWizard:1239472274432720929> {after.mention} has been uploaded as a  <@&{church_roles['vtt']}> virtual player.")
             await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### <a:partyWizard:1239472274432720929> {after.mention} has been added as a  <@&{church_roles['vtt']}> virtual player.")
+
+        target_role = after.guild.get_role(church_roles["dungeon organizer"])
+        if target_role not in before.roles and target_role in after.roles:
+            await after.guild.get_channel(await self._channel("no-players-allowed", after.guild)).send(f"### {emojis['dm']} {after.mention} has ascended to  <@&{church_roles['dungeon organizer']}>.")
         
 
     @commands.Cog.listener()
