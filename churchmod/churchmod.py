@@ -18,6 +18,7 @@ class ChurchMod(commands.Cog):
         )
         default_guild = {
             "debug_mode": False,
+            "log_mode": True,
         }
         self.config.register_guild(**default_guild)
 
@@ -50,19 +51,16 @@ class ChurchMod(commands.Cog):
         target_role = after.guild.get_role(church_roles["holding"])
         if target_role not in before.roles and target_role in after.roles:
             await after.guild.get_channel(await self._channel("campaign-planning", after.guild)).send(f"### {emojis['rsvpyes']} {after.mention} is <@&{church_roles['holding']}> the date for the next tentative game.")
-            await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### {emojis['rsvpyes']} {after.mention} is <@&{church_roles['holding']}> the date for the next tentative game.")
-        if target_role in before.roles and target_role not in after.roles:
+        if target_role in before.roles and target_role not in after.roles: # not sent to public channel, so manually log
             await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### {emojis['rsvpno']} {after.mention} is no longer <@&{church_roles['holding']}> the date for the next tentative game.")
 
-        target_role = after.guild.get_role(church_roles["irl"])
+        target_role = after.guild.get_role(church_roles["test"])
         if target_role not in before.roles and target_role in after.roles:
             await after.guild.get_channel(await self._channel("dnd-irl", after.guild)).send(f"### :bridge_at_night: {after.mention} has been added as a  <@&{church_roles['irl']}> Bay area player.")
-            await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### :bridge_at_night: {after.mention} has been added as a  <@&{church_roles['irl']}> Bay area player.")
 
         target_role = after.guild.get_role(church_roles["vtt"])
         if target_role not in before.roles and target_role in after.roles:
             await after.guild.get_channel(await self._channel("dnd-vtt", after.guild)).send(f"### <a:partyWizard:1239472274432720929> {after.mention} has been uploaded as a  <@&{church_roles['vtt']}> virtual player.")
-            await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### <a:partyWizard:1239472274432720929> {after.mention} has been added as a  <@&{church_roles['vtt']}> virtual player.")
 
         target_role = after.guild.get_role(church_roles["dungeon organizer"])
         if target_role not in before.roles and target_role in after.roles:
@@ -79,11 +77,19 @@ class ChurchMod(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        """Forward bot messages that are not responses to a command to server-log"""
+        if message.author.id == self.bot.user.id: # only messages from this bot
+            ctx = await self.bot.get_context(message)
+            if not ctx.valid: # exclude command responses & interactions
+                if message.channel.id != await self._channel("server-log", message.guild): # exclude messages in server-log
+                    if message.content: # exclude messages that are only embeds
+                        await message.guild.get_channel(await self._channel("server-log", message.guild)).send(message.content)
+
         """React with a beer emoji to messages containing certain keywords."""
         debug = await self.config.guild(message.guild).debug_mode()
         if debug:
             return
-        keywords = {"beer", "cheers", "beers", "tavern", "ghost town"}
+        keywords = {"beer", "cheers", "tavern", "ghost town"}
         emoji = emojis["beers"]
         if any(keyword in message.content.lower() for keyword in keywords):
             await message.add_reaction(emoji)
@@ -98,18 +104,39 @@ class ChurchMod(commands.Cog):
         pass
 
     @churchmod.command()
-    async def debug(self, ctx: commands.Context, state: bool) -> None:
-        """Toggle debug mode on or off in prod. """
+    async def debug(self, ctx: commands.Context, state: bool = None) -> None:
+        """Toggle debug mode: route bot messages to server-log"""
         if ctx.guild.id == self.server_id[0]:
             await ctx.send(error("`You can't do that here.`"))
             return
         current_state = await self.config.guild(ctx.guild).debug_mode()
-        if state == current_state:
+        if state is None:
+            new_state = not current_state
+        else:
+            new_state = state
+        if new_state == current_state:
             await ctx.send(error(f"`Debug mode is already {'on' if current_state else 'off'}.`"))
             return
-        await self.config.guild(ctx.guild).debug_mode.set(state)
-        await ctx.send(success(f"`Debug mode was turned {'on' if state else 'off'}.`"))
+        await self.config.guild(ctx.guild).debug_mode.set(new_state)
+        await ctx.send(success(f"`Debug mode was turned {'on' if new_state else 'off'}.`"))
         return
+
+    @churchmod.command()
+    async def logs(self, ctx: commands.Context, state: bool = None) -> None:
+        """Toggle log mode: copy bot messages to server-log"""
+        if ctx.guild.id == self.server_id[0]:
+            await ctx.send(error("`You can't do that here.`"))
+            return
+        current_state = await self.config.guild(ctx.guild).log_mode()
+        if state is None:
+            new_state = not current_state
+        else:
+            new_state = state
+        if new_state == current_state:
+            await ctx.send(error(f"`Server log mode is already {'on' if current_state else 'off'}.`"))
+            return
+        await self.config.guild(ctx.guild).log_mode.set(new_state)
+        await ctx.send(success(f"`Server log mode has been turned {'on' if new_state else 'off'}.`"))
 
     @churchmod.command()
     async def test(self, ctx: commands.Context) -> None:
