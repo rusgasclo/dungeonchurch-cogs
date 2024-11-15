@@ -46,7 +46,9 @@ emojis: dict[str,str] = {
     "crit": "<:critSuccess:1305725915854016512>",
     "fail": "<:critFail:1305725892965961799>",
     "eightball": ":8ball:",
-    "beers": "<a:beerCheers:1306152939886481479>"
+    "beers": "<a:beerCheers:1306152939886481479>",
+    "rsvpyes": "<a:rsvpYes:1243008859358892135>",
+    "rsvpno": "<:rsvpNo:1243008858213978164>"
 }
 
 augury_answers: list[str] = [

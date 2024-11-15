@@ -48,6 +48,14 @@ class ChurchMod(commands.Cog):
         target_role = after.guild.get_role(church_roles["npcs"])
         if target_role not in before.roles and target_role in after.roles:
             await mod.name_npc(after)
+        # HOLDING ROLE
+        target_role = after.guild.get_role(church_roles["holding"])
+        if target_role not in before.roles and target_role in after.roles:
+            await after.guild.get_channel(await self._channel("campaign-planning", after.guild)).send(f"### {emojis['rsvpyes']} {after.mention} is <@&{church_roles['holding']}> the date for the next tentative game.")
+            await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### {emojis['rsvpyes']} {after.mention} is <@&{church_roles['holding']}> the date for the next tentative game.")
+        if target_role in before.roles and target_role not in after.roles:
+            await after.guild.get_channel(await self._channel("server-log", after.guild)).send(f"### {emojis['rsvpno']} {after.mention} is no longer <@&{church_roles['holding']}> the date for the next tentative game.")
+        
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
