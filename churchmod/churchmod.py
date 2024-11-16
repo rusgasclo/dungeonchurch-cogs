@@ -83,8 +83,8 @@ class ChurchMod(commands.Cog):
         """Forward bot messages that are not responses to a command to server-log"""
         if message.author.id == self.bot.user.id: # only messages from this bot
             ctx = await self.bot.get_context(message)
-            if not ctx.valid: # exclude command responses & interactions
-                if message.channel.id != await self._channel("server-log", message.guild): # exclude messages in server-log
+            if not ctx.valid or not ctx.command: # exclude command responses & interactions
+                if message.channel.id != await self._channel("server-log", message.guild) and message.channel.id != await self._channel("bot-testing", message.guild) and message.channel.id != await self._channel("bot-spam", message.guild): 
                     if message.content: # exclude messages that are only embeds
                         await message.guild.get_channel(await self._channel("server-log", message.guild)).send(message.content)
 
