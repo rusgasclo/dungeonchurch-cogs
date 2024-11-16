@@ -3,6 +3,7 @@ from redbot.core.utils.chat_formatting import error, question, success
 import discord
 from .dm_lib import church_channels, emojis, church_roles
 from . import mod
+from . import embeds
 
 class ChurchMod(commands.Cog):
     """Moderation and automation for WWW.DUNGEON.CHURCH role playing group"""
@@ -169,14 +170,7 @@ class ChurchMod(commands.Cog):
     @churchmod.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
-        settings = {
-            "Debug Mode": await self.config.guild(ctx.guild).debug_mode(),
-            "Logging": await self.config.guild(ctx.guild).log_mode(),
-            "Auto-kick NPCs": await self.config.guild(ctx.guild).autokick_npc(),
-            "OpenAI API Key": "Yes" if await self.config.guild(ctx.guild).openai_api() else "Not Set"
-        }
-        message = "\n".join([f"- **{key}:** `{value}`" for key, value in settings.items()])
-        await ctx.send(f"# Current Mod Settings\n{message}")
+        await embeds.settings(self.config, ctx)
 
     #
     # Internal functions
