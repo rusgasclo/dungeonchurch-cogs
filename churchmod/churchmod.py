@@ -1,6 +1,7 @@
 from redbot.core import commands, Config, checks  
 from redbot.core.utils.chat_formatting import error, question, success
 import discord
+import textwrap
 from .dm_lib import church_channels, emojis, church_roles
 from . import mod
 
@@ -97,8 +98,18 @@ class ChurchMod(commands.Cog):
         if any(keyword in message.content.lower() for keyword in keywords):
             await message.add_reaction(emoji)
 
+
+    #
+    # Commands
+    # These are hybrid slash commands for use in the server by players/DMs.
+    #
+    @commands.hybrid_command()
+    async def offering(self, ctx: commands.Context) -> None:
+        await mod.make_offering(ctx)
+
     # 
     # churchmod command group
+    # These commands change the settings of the cog.
     #
     @commands.group()
     @checks.is_owner()
@@ -152,13 +163,6 @@ class ChurchMod(commands.Cog):
         message = "\n".join([f"- **{key}:** `{value}`" for key, value in settings.items()])
         await ctx.send(f"# Current Mod Settings\n{message}")
 
-    @churchmod.command()
-    async def test(self, ctx: commands.Context) -> None:
-        """Test a function"""
-        channels = await self._voice_channels(ctx.guild)
-        await ctx.send(f"CHANNELS: {channels}")
-
-    
     #
     # Internal functions
     #

@@ -4,8 +4,45 @@ DUNGEON CHURCH
 Moderation actions
 """
 
-import discord  
+import discord 
+from discord import Embed
 from redbot.core.utils.chat_formatting import error, question, success
+
+async def make_offering(ctx) -> None:
+        """Send donations and tips link as embed
+        
+            TODO: this should swap out the author and the donation link depending on who is calling it."""
+        logo_emoji = discord.utils.get(ctx.guild.emojis, name="dungeonchurch")
+        embed = Embed(
+            description = f"""
+                # Offering Plate
+                **Dungeon Church**'s purpose is to facilitate friendship and good times over some dice, and our games will always be free.
+
+                If you'd like to contribute to the group's expenses or show your appreciation, your support is completely optional but very much appreciated.
+
+                Thanks for being a part of our collective adventure.
+            """,
+            color=0xff0000
+        )
+        embed.set_thumbnail(url="https://www.dungeon.church/content/images/2024/09/offering.png")
+        embed.set_author(name="DM Brad passes around the...",icon_url="https://www.gravatar.com/avatar/7e2d60eb1f322b4ad6040a746946a361?s=250&d=mm&r=x")
+        donation_button = discord.ui.Button(
+             label = "Donations & Tips",
+             emoji = "🙏",
+             url = "https://www.dungeon.church/#/portal/support",
+             style = discord.ButtonStyle.link
+        )
+        tithe_button = discord.ui.Button(
+             label = "Become a Tithing Member",
+             emoji = logo_emoji,
+             url = "https://www.dungeon.church/#/portal/signup",
+             style = discord.ButtonStyle.link
+        )
+
+        view = discord.ui.View()
+        view.add_item(donation_button)
+        view.add_item(tithe_button)
+        await ctx.send(embed=embed, view=view)
 
 async def name_npc(member: discord.Member) -> None:
     """Append ` || NPC` to server nickname"""
