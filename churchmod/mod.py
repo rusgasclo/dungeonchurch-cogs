@@ -5,23 +5,22 @@ Moderation actions
 """
 
 import discord 
-from discord import Embed
 from redbot.core.utils.chat_formatting import error, question, success
 from . import embeds
 from openai import OpenAI
 
-async def make_offering(ctx, config) -> None:
+async def make_offering(ctx, openai) -> None:
         """Send donations and tips link as embed"""
         if not ctx.interaction: # delete prefix trigger messages
             await ctx.message.delete() 
-        llm = await config.guild(ctx.guild).openai_api()
+        llm = openai.get("api_key")
         if llm:
-            prompt = "Generate a single direct quote no longer than a sentence or two for a church Deacon asking for contributions or tips as they pass the offertory basket to a group of adventurers or participants in a shared storytelling game as the congregation. The tone should be mysterious and ominous, with a subtle emphasis on the importance of these contributions in furthering the group's journey or story and how the group is a collective effort. Each sentence should evoke a sense of immersion in the fantasy world."
+            prompt = "Generate a single direct quote no longer than a sentence for a mysterious church Deacon as they pass the offertory basket to a group of adventurers or participants in a shared storytelling game as the congregation. The tone should be mysterious and ominous, with a subtle emphasis on the importance of these contributions in furthering the group's journey or story and how the group is a collective effort. Each sentence should evoke a sense of immersion in the fantasy world."
             client = OpenAI(api_key=llm)
             completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model="gpt-3.5-turbo",
-                temperature=0.5
+                temperature=0.8
             )
             answer = f"*{completion.choices[0].message.content}*"
         embed = embeds.offering

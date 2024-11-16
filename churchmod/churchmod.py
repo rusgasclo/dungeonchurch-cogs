@@ -15,13 +15,12 @@ class ChurchMod(commands.Cog):
         self.bot = bot
         self.server_id = [1190404189214494800, 828777456898277396] # [dev, prod]
         self.config = Config.get_conf(
-            self, identifier=4206661045, force_registration=True
+            self, identifier=4206661001, force_registration=True
         )
         default_guild = {
             "debug_mode": False,
             "log_mode": True,
-            "autokick_npc": False,
-            "openai_api": None
+            "autokick_npc": False
         }
         self.config.register_guild(**default_guild)
 
@@ -107,7 +106,8 @@ class ChurchMod(commands.Cog):
     @commands.hybrid_command()
     async def offering(self, ctx: commands.Context) -> None:
         """Support Dungeon Church or tip the DM"""
-        await mod.make_offering(ctx, self.config)
+        llm = await self.bot.get_shared_api_tokens("openai")
+        await mod.make_offering(ctx, llm)
 
     # 
     # churchmod command group
@@ -170,7 +170,7 @@ class ChurchMod(commands.Cog):
     @churchmod.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
-        await embeds.settings(self.config, ctx)
+        await embeds.settings(self.config, ctx, )
 
     #
     # Internal functions
