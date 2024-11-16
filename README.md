@@ -26,10 +26,17 @@ Finally, load your cog(s):
 [p]load <cog_name>
 ```
 
+For cogs that have LLM integration, set the OpenAPI key in Red:
+
+```
+[p]set api openai api_key,<paste here>
+```
+
 # Cogs
 ## augury
-A simple fortune teller roller that transforms into a customizable NPC ritual when you add an OpenAI API key.
+A simple roller that transforms into a customizable NPC when you add an OpenAI API key.
 * `/augury` make an appeal to the gods
+* `/augur` to change settings
 ## 🔒 churchmod
 Automation and moderation for our private server.
 ## dice
