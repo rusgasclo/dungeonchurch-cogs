@@ -155,19 +155,6 @@ class ChurchMod(commands.Cog):
         await ctx.send(success(f"`Server log mode has been turned {'on' if new_state else 'off'}.`"))
 
     @churchmod.command()
-    async def openai(self, ctx: commands.Context, key: str = None) -> None:
-        """Save API key to enable LLM, or `reset`"""
-        if key == "reset":
-            await self.config.guild(ctx.guild).openai_api.set(None)
-            await ctx.send(success("OpenAI API key was reset."))
-        elif key is not None:
-            await self.config.guild(ctx.guild).openai_api.set(key)
-            await ctx.send(success("OpenAI API key was saved."))
-        else:
-            current_key = await self.config.guild(ctx.guild).openai_api()
-            await ctx.send(question(f"Current API key is:\n `{current_key}`"))
-
-    @churchmod.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
         await embeds.settings(self.config, ctx, (await self.bot.get_shared_api_tokens("openai")).get("api_key"))
