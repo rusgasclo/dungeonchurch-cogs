@@ -170,7 +170,7 @@ class ChurchMod(commands.Cog):
     @churchmod.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
-        await embeds.settings(self.config, ctx, )
+        await embeds.settings(self.config, ctx, (await self.bot.get_shared_api_tokens("openai")).get("api_key"))
 
     #
     # Internal functions

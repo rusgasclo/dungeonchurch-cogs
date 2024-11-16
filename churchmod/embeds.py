@@ -10,16 +10,16 @@ from .dm_lib import emojis
 #
 # Dynamic assets
 #
-async def settings(config, ctx) -> None: 
+async def settings(config, ctx, key) -> None: 
     """Returns an embed with a list of settings"""
     setting_list = {
             "Debug Mode": await config.guild(ctx.guild).debug_mode(),
             "Logging": await config.guild(ctx.guild).log_mode(),
             "Auto-kick NPCs": await config.guild(ctx.guild).autokick_npc(),
-            "OpenAI API Key": "Yes" if await config.guild(ctx.guild).openai_api() else "Not Set"
+            "OpenAI API Key": "Yes" if key else "Not Set"
     }
     embed = discord.Embed(
-        title = "Current churchmod Settings",
+        title = "⛪ churchmod",
         color = 0xff0000
     )
     for setting, value in setting_list.items():
