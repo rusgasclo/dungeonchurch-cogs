@@ -7,41 +7,20 @@ Moderation actions
 import discord 
 from discord import Embed
 from redbot.core.utils.chat_formatting import error, question, success
+from . import embeds
 
 async def make_offering(ctx) -> None:
-        """Send donations and tips link as embed
-        
-            TODO: this should swap out the author and the donation link depending on who is calling it."""
+        """Send donations and tips link as embed"""
         logo_emoji = discord.utils.get(ctx.guild.emojis, name="dungeonchurch")
-        embed = Embed(
-            description = f"""
-                # Offering Plate
-                **Dungeon Church**'s purpose is to facilitate friendship and good times over some dice, and our games will always be free.
-
-                If you'd like to contribute to the group's expenses or show your appreciation, your support is completely optional but very much appreciated.
-
-                Thanks for being a part of our collective adventure.
-            """,
-            color=0xff0000
-        )
+        embed = embeds.offering
         embed.set_thumbnail(url="https://www.dungeon.church/content/images/2024/09/offering.png")
-        embed.set_author(name="DM Brad passes around the...",icon_url="https://www.gravatar.com/avatar/7e2d60eb1f322b4ad6040a746946a361?s=250&d=mm&r=x")
-        donation_button = discord.ui.Button(
-             label = "Donations & Tips",
-             emoji = "🙏",
-             url = "https://www.dungeon.church/#/portal/support",
-             style = discord.ButtonStyle.link
-        )
-        tithe_button = discord.ui.Button(
-             label = "Become a Tithing Member",
-             emoji = logo_emoji,
-             url = "https://www.dungeon.church/#/portal/signup",
-             style = discord.ButtonStyle.link
-        )
+        embed.title = f"{ctx.author.nick if ctx.author.nick else ctx.author.display_name} passes around the..."
+        button1 = embeds.donation_button
+        button2 = embeds.tithe_button
 
         view = discord.ui.View()
-        view.add_item(donation_button)
-        view.add_item(tithe_button)
+        view.add_item(button1)
+        view.add_item(button2)
         await ctx.send(embed=embed, view=view)
 
 async def name_npc(member: discord.Member) -> None:

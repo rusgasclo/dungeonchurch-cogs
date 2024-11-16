@@ -1,7 +1,6 @@
 from redbot.core import commands, Config, checks  
 from redbot.core.utils.chat_formatting import error, question, success
 import discord
-import textwrap
 from .dm_lib import church_channels, emojis, church_roles
 from . import mod
 
