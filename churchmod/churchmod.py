@@ -168,5 +168,5 @@ class ChurchMod(commands.Cog):
             return church_channels["dev-server"]
         debug = await self.config.guild(guild).debug_mode() 
         if not debug:
-            return church_channels.get(channel_name, church_channels["server-log"])
-        return church_channels["server-log"]
+            return church_channels.get(channel_name, church_channels["bot-testing"])
+        return church_channels["bot-testing"]

@@ -13,10 +13,10 @@ from .dm_lib import emojis
 async def settings(config, ctx, key) -> None: 
     """Returns an embed with a list of settings"""
     setting_list = {
-            "Debug Mode": await config.guild(ctx.guild).debug_mode(),
-            "Logging": await config.guild(ctx.guild).log_mode(),
-            "Auto-kick NPCs": await config.guild(ctx.guild).autokick_npc(),
-            "OpenAI API Key": "Yes" if key else "Not Set"
+            "Debug Mode: Reroute messages to #bot-testing": await config.guild(ctx.guild).debug_mode(),
+            "Logging: Copy bot alerts to #server-log": await config.guild(ctx.guild).log_mode(),
+            "Auto-kick expired NPCs:": await config.guild(ctx.guild).autokick_npc(),
+            "OpenAI API key is set:": "Yes" if key else "Not Set"
     }
     embed = discord.Embed(
         title = "⛪ churchmod",
