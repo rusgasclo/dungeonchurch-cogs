@@ -10,14 +10,20 @@ from .dm_lib import emojis
 #
 # Dynamic assets
 #
-async def settings(config, ctx, key) -> None: 
+async def settings(config, ctx, bot) -> None: 
     """Returns an embed with a list of settings"""
+    key = (await bot.get_shared_api_tokens("openai")).get("api_key")
+    reinvite = (await bot.get_shared_api_tokens("dungeonchurch")).get("reinvite")
+    autokick = await config.guild(ctx.guild).autokick_npc()
     setting_list = {
             "Debug Mode: Reroute messages to #bot-testing": await config.guild(ctx.guild).debug_mode(),
             "Logging: Copy bot alerts to #server-log": await config.guild(ctx.guild).log_mode(),
-            "Auto-kick expired NPCs:": await config.guild(ctx.guild).autokick_npc(),
-            "OpenAI API key is set:": "Yes" if key else "Not Set"
+            "Auto-kick expired NPCs:": autokick,
+            "Re-invite auto-kicked members:": reinvite if reinvite else "Not Set",
+            "OpenAI API key is set:": f"Yes, ends in {key[-6:]}" if key else "No, use [p]set api openai api_key,<key>"
     }
+    if not autokick:
+        setting_list.pop("Re-invite auto-kicked members:", None)
     embed = discord.Embed(
         title = "⛪ churchmod",
         color = 0xff0000

@@ -50,7 +50,7 @@ class ChurchMod(commands.Cog):
         if target_role not in before.roles and target_role in after.roles:
             await mod.name_npc(after)
         if target_role in before.roles and target_role not in after.roles:
-            await mod.kick_npc(after, self.config, after.guild.get_channel(await self._channel("server-log", after.guild)))
+            await mod.kick_npc(after, self.config, after.guild.get_channel(await self._channel("server-log", after.guild)), (await self.bot.get_shared_api_tokens("dungeonchurch")).get("reinvite"))
 
         target_role = after.guild.get_role(church_roles["holding"])
         if target_role not in before.roles and target_role in after.roles:
@@ -138,6 +138,24 @@ class ChurchMod(commands.Cog):
         return
 
     @churchmod.command()
+    async def autokick(self, ctx: commands.Context, state: bool = None) -> None:
+        """Toggle whether expired NPCs should be auto-kicked or re-invited"""
+        if ctx.guild.id == self.server_id[0]:
+            await ctx.send(error("`You can't do that here.`"))
+            return
+        current_state = await self.config.guild(ctx.guild).autokick_npc()
+        if state is None:
+            new_state = not current_state
+        else:
+            new_state = state
+        if new_state == current_state:
+            await ctx.send(error(f"`Auto-kick is already {'on' if current_state else 'off'}.`"))
+            return
+        await self.config.guild(ctx.guild).debug_mode.set(new_state)
+        await ctx.send(success(f"`Auto-kick expired NPCs was turned {'on' if new_state else 'off'}.`"))
+        return
+
+    @churchmod.command()
     async def logs(self, ctx: commands.Context, state: bool = None) -> None:
         """Toggle log mode: copy bot messages to server-log"""
         if ctx.guild.id == self.server_id[0]:
@@ -157,7 +175,7 @@ class ChurchMod(commands.Cog):
     @churchmod.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
-        await embeds.settings(self.config, ctx, (await self.bot.get_shared_api_tokens("openai")).get("api_key"))
+        await embeds.settings(self.config, ctx, self.bot)
 
     #
     # Internal functions

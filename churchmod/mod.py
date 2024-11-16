@@ -42,21 +42,26 @@ async def name_npc(member: discord.Member) -> None:
     if "||" not in member.nick:
         await member.edit(nick=f"{member.display_name} || NPC")
 
-async def kick_npc(member: discord.Member, config, log_channel) -> None:
+async def kick_npc(member: discord.Member, config, log_channel, reinvite:str = None) -> None:
     """Kick expired NPCs. 
     
-    Expiration of roles is controlled by autotemproles cog"""
+    Expiration of roles is controlled by autotemproles cog. If reinvite link is set it will be sent."""
     autokick = await config.guild(member.guild).autokick_npc()
+    if reinvite is not None:
+        come_back = (
+            f"*Don't worry* - if you're still interested in playing with us, we'd still love to have you!\n"
+            "Join us again: [Invite Link]\n" # [p]set api dungeonchurch reinvite,<link>
+        )
     if member.nick and "NPC" in member.nick:
         if autokick:
             try:
+                
                 await member.send(
                     f"Hail {member.display_name},\n\n"
                     "> *The ouroboros turns, and those without a name fade from the realm of Pyora.*"
                     "\nYou were automatically removed from **Dungeon Church** for being an NPC for 60+ days.\n"
-                    "*Don't worry* - if you're still interested in playing with us, we'd still love to have you!\n"
-                    "Join us again: [Invite Link]\n" # TODO
-                    "If not, we wish you luck on your quest to find a gaming group. Thanks for stopping by."
+                    f"{come_back if come_back else ''}"
+                    "We wish you luck on your quest to find a gaming group! Thanks for stopping by."
                 )
                 await member.kick(reason="NPC expired, auto-kick enabled.")
                 await log_channel.send(success(f"Auto-Kicked expired NPC **{member.display_name}**."))
