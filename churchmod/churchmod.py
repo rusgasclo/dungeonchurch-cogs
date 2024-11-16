@@ -107,7 +107,7 @@ class ChurchMod(commands.Cog):
     @commands.hybrid_command()
     async def offering(self, ctx: commands.Context) -> None:
         """Support Dungeon Church or tip the DM"""
-        await mod.make_offering(ctx)
+        await mod.make_offering(ctx, self.config)
 
     # 
     # churchmod command group
