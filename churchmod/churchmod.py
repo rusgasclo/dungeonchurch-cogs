@@ -19,6 +19,7 @@ class ChurchMod(commands.Cog):
         default_guild = {
             "debug_mode": False,
             "log_mode": True,
+            "autokick_npc": False
         }
         self.config.register_guild(**default_guild)
 
@@ -47,6 +48,8 @@ class ChurchMod(commands.Cog):
         target_role = after.guild.get_role(church_roles["npcs"])
         if target_role not in before.roles and target_role in after.roles:
             await mod.name_npc(after)
+        if target_role in before.roles and target_role not in after.roles:
+            await mod.kick_npc(after, self.config, after.guild.get_channel(await self._channel("server-log", after.guild)))
 
         target_role = after.guild.get_role(church_roles["holding"])
         if target_role not in before.roles and target_role in after.roles:
@@ -143,7 +146,8 @@ class ChurchMod(commands.Cog):
         """Display current settings."""
         settings = {
             "Debug Mode": await self.config.guild(ctx.guild).debug_mode(),
-            "Logging": await self.config.guild(ctx.guild).log_mode()
+            "Logging": await self.config.guild(ctx.guild).log_mode(),
+            "Auto-kick NPCs": await self.config.guild(ctx.guild).autokick_npc()
         }
         message = "\n".join([f"- **{key}:** `{value}`" for key, value in settings.items()])
         await ctx.send(f"# Current Mod Settings\n{message}")
