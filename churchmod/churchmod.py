@@ -19,7 +19,8 @@ class ChurchMod(commands.Cog):
         default_guild = {
             "debug_mode": False,
             "log_mode": True,
-            "autokick_npc": False
+            "autokick_npc": False,
+            "openai_api": None
         }
         self.config.register_guild(**default_guild)
 
@@ -104,6 +105,7 @@ class ChurchMod(commands.Cog):
     #
     @commands.hybrid_command()
     async def offering(self, ctx: commands.Context) -> None:
+        """Support Dungeon Church or tip the DM"""
         await mod.make_offering(ctx)
 
     # 
@@ -152,12 +154,26 @@ class ChurchMod(commands.Cog):
         await ctx.send(success(f"`Server log mode has been turned {'on' if new_state else 'off'}.`"))
 
     @churchmod.command()
+    async def openai(self, ctx: commands.Context, key: str = None) -> None:
+        """Save API key to enable LLM, or `reset`"""
+        if key == "reset":
+            await self.config.guild(ctx.guild).openai_api.set(None)
+            await ctx.send(success("OpenAI API key was reset."))
+        elif key is not None:
+            await self.config.guild(ctx.guild).openai_api.set(key)
+            await ctx.send(success("OpenAI API key was saved."))
+        else:
+            current_key = await self.config.guild(ctx.guild).openai_api()
+            await ctx.send(question(f"Current API key is:\n `{current_key}`"))
+
+    @churchmod.command()
     async def settings(self, ctx: commands.Context) -> None:
         """Display current settings."""
         settings = {
             "Debug Mode": await self.config.guild(ctx.guild).debug_mode(),
             "Logging": await self.config.guild(ctx.guild).log_mode(),
-            "Auto-kick NPCs": await self.config.guild(ctx.guild).autokick_npc()
+            "Auto-kick NPCs": await self.config.guild(ctx.guild).autokick_npc(),
+            "OpenAI API Key": "Yes" if await self.config.guild(ctx.guild).openai_api() else "Not Set"
         }
         message = "\n".join([f"- **{key}:** `{value}`" for key, value in settings.items()])
         await ctx.send(f"# Current Mod Settings\n{message}")
