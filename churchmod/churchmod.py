@@ -151,7 +151,7 @@ class ChurchMod(commands.Cog):
         if new_state == current_state:
             await ctx.send(error(f"`Auto-kick is already {'on' if current_state else 'off'}.`"))
             return
-        await self.config.guild(ctx.guild).debug_mode.set(new_state)
+        await self.config.guild(ctx.guild).autokick_npc.set(new_state)
         await ctx.send(success(f"`Auto-kick expired NPCs was turned {'on' if new_state else 'off'}.`"))
         return
 
