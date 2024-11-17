@@ -5,7 +5,7 @@
 # Dungeon Church Cogs
 [Red-DiscordBot](https://github.com/Cog-Creators/Red-DiscordBot/releases) cogs for [Dungeon Church](https://www.dungeon.church).
 
-Focused on RPG & D&D related things, ideas or pull requests welcome.
+Focused on RPG, D&D, & game related cogs - ideas or pull requests welcome.
 
 ----
 To add these cogs to your instance, run this command first (`[p]` is your bot prefix):
@@ -40,9 +40,9 @@ A simple roller that transforms into a customizable NPC when you add an OpenAI A
 ## 🔒 churchmod
 Automation and moderation for our private server.
 ## dice
-Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs). I added better formatting, emojis, and some extra commands for RPG players.
+Forked from [PCXCogs](https://github.com/PhasecoreX/PCXCogs). I added better formatting and commands useful for RPG players, including contested rolls.
 * `/roll` roll complicated [dice formulas](https://github.com/StarlitGhost/pyhedrals)
-* `/qr [mod]` quick roll 1d20
+* `/qr [mod] [@challenge]` quick roll 1d20
 * `/adv [mod]` quick roll 2d20dl
 * `/dis [mod]` quick roll 2d20dh
 * `/randstats` roll ability scores within a set range

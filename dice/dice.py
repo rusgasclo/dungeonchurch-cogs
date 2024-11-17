@@ -13,8 +13,10 @@ from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import error, question, success
 from redbot.core.utils.predicates import MessagePredicate
+import discord
 
 from .dm_lib import emojis, prepend_emoji, eightball_messages
+from . import contested
 
 MAX_ROLLS_NOTIFY = 1000000
 MAX_MESSAGE_LENGTH = 2000
@@ -194,22 +196,43 @@ class Dice(commands.Cog):
     #
 
     @commands.hybrid_command()
-    async def qr(self, ctx: commands.Context, modifier: int = 0) -> None:
-        """ Quick roll 1d20 """
+    async def qr(self, ctx: commands.Context, modifier: int = 0, challenge: discord.Member = None) -> None:
+        """ Quick roll 1d20 
+
+            You can specify a target, who can then roll and enter a modifier to determine the winner.
+        """
         dice_roller = pyhedrals.DiceRoller(
                 maxDice=await self.config.max_dice_rolls(),
                 maxSides=await self.config.max_die_sides(),
             )
         result = dice_roller.parse("1d20").result
         total = result + modifier
-        roll_message = f"{emojis['d20']} {ctx.message.author.mention} rolled **1d20"
-        if modifier != 0:
-            roll_message += f" + {modifier}"
-        roll_message += f"** and got `{total}`"
-        await ctx.send(roll_message)
-        # Clean up prefix messages according to setting
-        if not ctx.interaction and await self.config.message_cleanup():
-            await ctx.message.delete() 
+        # Handle single roll
+        if not challenge:
+            roll_message = f"{emojis['d20']} {ctx.message.author.mention} rolled **1d20"
+            if modifier != 0:
+                roll_message += f" + {modifier}"
+            roll_message += f"** and got `{total}`"
+            await ctx.send(roll_message)
+            # Clean up prefix messages according to setting
+            if not ctx.interaction and await self.config.message_cleanup():
+                await ctx.message.delete() 
+            return
+        # Handle contested roll
+        if challenge.bot:
+            await ctx.send(error("`You can't challenge a bot!`"),ephemeral=True)
+            return
+        if ctx.author.id == challenge.id:
+            await ctx.send(error("`You can't challenge yourself, silly!`"),ephemeral=True)
+            return
+        roll_message = (
+            f"### :game_die: {ctx.author.mention} has challenged {challenge.mention} to a **contested** roll!\n\n"
+            f"> {emojis['d20']} **{ctx.author.display_name}** rolled **1d20{'+' + str(modifier) if modifier != 0 else ''}** and got ||` {total} `||\n"
+            f"### It's {challenge.mention}'s turn!"
+        )
+        view = contested.ContestedRollView(ctx.author, challenge, ctx, dice_roller, result, total)
+        sent_message = await ctx.send(roll_message,view=view)
+        view.set_message(sent_message)  # Link the view to the message
 
     @commands.hybrid_command()
     async def flipcoin(self, ctx: commands.Context) -> None:
