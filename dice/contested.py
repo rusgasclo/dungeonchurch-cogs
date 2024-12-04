@@ -3,14 +3,11 @@ DUNGEON CHURCH
 
 Classes for interactive elements of contests.
 """
-
 from discord.ui import Button, View, Modal, TextInput
-from redbot.core.utils.chat_formatting import error, question, success
-from .dm_lib import emojis
 import discord
 
 class ContestedRollModal(Modal):
-    def __init__(self, challenger, challenged, ctx, dice_roller, initial_result, total, message):
+    def __init__(self, challenger, challenged, ctx, dice_roller, initial_result, total, message, view):
         super().__init__(title="Submit Your Modifier")
         self.challenger = challenger
         self.challenged = challenged
@@ -19,6 +16,7 @@ class ContestedRollModal(Modal):
         self.initial_result = initial_result
         self.total = total
         self.message = message
+        self.view = view
 
         self.modifier = TextInput(
             label="Enter modifier:",
@@ -40,18 +38,21 @@ class ContestedRollModal(Modal):
             # Update the message with both results
             new_content = (
                 f"### {self.challenger.mention} vs {interaction.user.mention}!\n\n"
-                f"> ✅ **{self.challenger.display_name}** rolled **1d20{f'+{challenger_modifier}' if challenger_modifier != 0 else ''}** and got `{self.total}`.\n"
-                f"> ❌ **{interaction.user.display_name}** rolled **1d20{f'+{modifier}' if modifier != 0 else ''}** and got `{challenged_total}`.\n"
+                f"> ✅ **{self.challenger.display_name}** rolled **1d20{f'+{challenger_modifier}' if challenger_modifier != 0 else ''}** and got `{self.total}`\n"
+                f"> ❌ **{interaction.user.display_name}** rolled **1d20{f'+{modifier}' if modifier != 0 else ''}** and got `{challenged_total}`\n"
                 f"## {'🤝 Draw!' if self.total == challenged_total else (f'👑 {self.challenger.display_name} Won!' if self.total > challenged_total else f'👑 {self.challenged.display_name} Won!')}"
             )
+            if self.view:
+                self.view.stop() # Stop the view so that it's not edited on_timeout
             await self.message.edit(content=new_content, view=None)  # Remove the button
             await interaction.response.defer() # Acknowledge submission
+
         except Exception as e:
-            await interaction.response.send_message(error(f"Error: {str(e)}", ephemeral=True))
+            await interaction.response.send_message(f"Error: {str(e)}", ephemeral=True)
 
 class ContestedRollButton(Button):
     def __init__(self, challenger, challenged, ctx, dice_roller, initial_result, total):
-        super().__init__(label=f"{challenged.nick}'s Roll!", style=discord.ButtonStyle.primary)
+        super().__init__(label=f"{challenged.display_name}'s Roll!", style=discord.ButtonStyle.primary)
         self.challenger = challenger
         self.challenged = challenged
         self.ctx = ctx
@@ -74,14 +75,28 @@ class ContestedRollButton(Button):
             initial_result=self.initial_result,
             total=self.total,
             message=self.view.message,
+            view=self.view
         )
         await interaction.response.send_modal(modal)
 
 class ContestedRollView(View):
-    def __init__(self, challenger, challenged, ctx, dice_roller, initial_result, total):
-        super().__init__(timeout=None)
+    def __init__(self, challenger, challenged, ctx, dice_roller, initial_result, total, timeout):
+        super().__init__(timeout=timeout)
         self.message = None
+        self.challenged = challenged
+        self.challenger = challenger
         self.add_item(ContestedRollButton(challenger, challenged, ctx, dice_roller, initial_result, total))
 
     def set_message(self, message):
         self.message = message
+
+    async def on_timeout(self):
+        """Timeout the view."""
+        if self.message:
+            try:
+                await self.message.edit(
+                    content=f"> 😞 *{self.challenged.mention} did not respond to {self.challenger.mention}'s challenge.*",
+                    view = None
+                )
+            except:
+                pass # Message was not found / deleted            

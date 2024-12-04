@@ -25,13 +25,14 @@ class Dice(commands.Cog):
     """Perform complex dice rolling."""
 
     __author__ = "PhasecoreX & DM Brad"
-    __version__ = "2.1.0.1"
+    __version__ = "2.1.0.2"
 
     default_global_settings: ClassVar[dict[str, Union[int, bool]]] = {
         "max_dice_rolls": 10000,
         "max_die_sides": 10000,
         "randstats_max": 78,
         "randstats_min": 66,
+        "timeout": 86400, # in seconds
         "message_cleanup": False
     }
     DROPPED_EXPLODED_RE = re.compile(r"-\*(\d+)\*-")
@@ -63,7 +64,6 @@ class Dice(commands.Cog):
     #
     # Command methods: diceset
     #
-
     @commands.group()
     @checks.is_owner()
     async def diceset(self, ctx: commands.Context) -> None:
@@ -78,6 +78,7 @@ class Dice(commands.Cog):
             "Randstats Max": await self.config.randstats_max(),
             "Randstats Min": await self.config.randstats_min(),
             "Message Cleanup": await self.config.message_cleanup(),
+            "Challenge Timeout (s)": await self.config.timeout()
         }
         message = "\n".join([f"- **{key}:** `{value}`" for key, value in settings.items()])
         await ctx.send(f"# Current Dice Settings\n{message}")
@@ -173,6 +174,20 @@ class Dice(commands.Cog):
             await self.config.randstats_min.set(new_value)
             await ctx.send(f"The minimum for randstats has been changed from `{current_min}` to `{new_value}`")
 
+    @diceset.command(name="timeout")
+    async def timeout(self, ctx: commands.Context, new_value: int = None):
+        """Define the timeout length in seconds for a challenge roll."""
+        current_timeout = await self.config.timeout()
+        if new_value is None:
+            await ctx.send(question(f"The current challenge timeout is {current_timeout} seconds."))
+            return
+        if not isinstance(new_value, int) or new_value < 1:
+            await ctx.send(error(f"The timeout needs to be at least one second."))
+            return
+        else:
+            await self.config.timeout.set(new_value)
+            await ctx.send(success(f"The challenge timeout has been changed from `{current_timeout}` to `{new_value}` seconds."))
+
     @diceset.command(name="cleanup")
     async def cleanup(self, ctx, set: bool = None):
         """Set or toggle whether to delete [p] trigger messages.
@@ -219,18 +234,19 @@ class Dice(commands.Cog):
                 await ctx.message.delete() 
             return
         # Handle contested roll
+        timeout = await self.config.timeout()
         if challenge.bot:
-            await ctx.send(error("`You can't challenge a bot!`"),ephemeral=True)
+            await ctx.send("`You can't challenge a bot!`",ephemeral=True)
             return
         if ctx.author.id == challenge.id:
-            await ctx.send(error("`You can't challenge yourself, silly!`"),ephemeral=True)
+            await ctx.send("`You can't challenge yourself, silly!`",ephemeral=True)
             return
         roll_message = (
             f"### :game_die: {ctx.author.mention} has challenged {challenge.mention} to a **contested** roll!\n\n"
             f"> {emojis['d20']} **{ctx.author.display_name}** rolled **1d20{'+' + str(modifier) if modifier != 0 else ''}** and got ||` {total} `||\n"
             f"### It's {challenge.mention}'s turn!"
         )
-        view = contested.ContestedRollView(ctx.author, challenge, ctx, dice_roller, result, total)
+        view = contested.ContestedRollView(ctx.author, challenge, ctx, dice_roller, result, total, timeout)
         sent_message = await ctx.send(roll_message,view=view)
         view.set_message(sent_message)  # Link the view to the message
 

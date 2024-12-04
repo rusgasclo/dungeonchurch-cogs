@@ -53,13 +53,6 @@ emojis: dict[str,str] = {
     "dm": "<:dm:1239472394028974080>"
 }
 
-augury_answers: list[str] = [
-    "Woe",
-    "Weal",
-    "Woe & Weal",
-    "Nothing"
-]
-
 eightball_messages: list[str] = [
     "It is certain",
     "It is decidely so",
