@@ -1,5 +1,14 @@
 <p align="center">
-    <img width="650" src="logo-chrome-red.png">
+    <img width="650" src="logo-chrome-red.png"><br>
+    <a href=https://github.com/oakbrad/dungeonchurch>
+        <img src=https://img.shields.io/github/last-commit/oakbrad/dungeonchurch?label=dungeonchurch&color=gray&labelColor=ff2600&logo=github>
+    </a>
+    <a href=https://github.com/oakbrad/dungeonchurch-pyora>
+        <img src=https://img.shields.io/github/last-commit/oakbrad/dungeonchurch-pyora?label=dungeonchurch-pyora&color=gray&labelColor=ff2600&logo=github>
+    </a>
+    <a href=https://github.com/oakbrad/dungeonchurch-cogs>
+        <img src=https://img.shields.io/github/last-commit/oakbrad/dungeonchurch-cogs?label=dungeonchurch-cogs&color=gray&labelColor=ff2600&logo=github>
+    </a>
 </p>
 
 # Dungeon Church Cogs
