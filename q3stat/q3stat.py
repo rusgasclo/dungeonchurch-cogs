@@ -119,53 +119,9 @@ class Q3stat(commands.Cog):
 
                 # Assuming monitoring the first server in the list
                 server_data = data[0]
-                players = server_data.get("players", [])
 
-                # Filter out players with ping = 0 (bots)
-                human_players = [player["name"] for player in players if player.get("ping", 0) > 0]
-                log.debug(f"Human players for guild '{guild.name}': {human_players}")
-
-                # Sort lists for consistent comparison
-                human_players_sorted = sorted(human_players)
-                previous_players_sorted = sorted(previous_players)
-                log.debug(f"Sorted human_players_sorted: {human_players_sorted}")
-                log.debug(f"Sorted previous_players_sorted: {previous_players_sorted}")
-
-                # Detect new players
-                new_players = list(set(human_players_sorted) - set(previous_players_sorted))
-                old_players = list(set(previous_players_sorted) - set(human_players_sorted))
-                log.debug(f"New players: {new_players}")
-                log.debug(f"Old players: {old_players}")
-
-                if new_players:
-                    channel = guild.get_channel(match_channel)
-                    if channel and isinstance(channel, discord.TextChannel):
-                        for player in new_players:
-                            try:
-                                await channel.send(f"🟢 **{player}** has joined the Quake 3 server!")
-                            except discord.Forbidden:
-                                log.error(f"Missing permissions to send messages in channel '{channel.name}' for guild '{guild.name}'.")
-                            except discord.HTTPException as http_exc:
-                                log.error(f"HTTP error occurred while sending message in guild '{guild.name}': {http_exc}")
-                    else:
-                        log.error(f"Channel with ID {match_channel} not found or is not a text channel in guild '{guild.name}'.")
-                if old_players:
-                    channel = guild.get_channel(match_channel)
-                    if channel and isinstance(channel, discord.TextChannel):
-                        for player in old_players:
-                            try:
-                                await channel.send(f"🔴 **{player}** has left the Quake 3 server!")
-                            except discord.Forbidden:
-                                log.error(f"Missing permissions to send messages in channel '{channel.name}' for guild '{guild.name}'.")
-                            except discord.HTTPException as http_exc:
-                                log.error(f"HTTP error occurred while sending message in guild '{guild.name}': {http_exc}")
-                    else:
-                        log.error(f"Channel with ID {match_channel} not found or is not a text channel in guild '{guild.name}'.")
-
-
-                # Update the previous players list
-                await self.config.guild(guild).previous_players.set(human_players)
-                log.debug(f"UPDATED player list: {human_players}")   
+                # Delegate player update processing to the new function
+                await self.send_player_update(guild, server_data, previous_players, match_channel)
 
                 # Wait for the next interval
                 await asyncio.sleep(json_interval)
@@ -176,6 +132,62 @@ class Q3stat(commands.Cog):
             except Exception as e:
                 log.error(f"Unexpected error in fetch task for guild '{guild.name}': {e}")
                 await asyncio.sleep(60)  # Wait before retrying after unexpected errors
+
+
+    async def send_player_update(self, guild: discord.Guild, server_data: dict, previous_players: list, match_channel: int):
+        """
+        Process the JSON data to determine player join/leave events and send notifications.
+        This function filters out players with a ping of 0, compares current and previous states,
+        sends notifications to the designated channel, and updates the previous player list.
+        """
+        players = server_data.get("players", [])
+        # Filter out players with ping = 0 (bots)
+        human_players = [player["name"] for player in players if player.get("ping", 0) > 0]
+        log.debug(f"Human players for guild '{guild.name}': {human_players}")
+
+        # Sort lists for consistent comparison
+        human_players_sorted = sorted(human_players)
+        previous_players_sorted = sorted(previous_players)
+        log.debug(f"Sorted human_players_sorted: {human_players_sorted}")
+        log.debug(f"Sorted previous_players_sorted: {previous_players_sorted}")
+
+        # Detect new and old players
+        new_players = list(set(human_players_sorted) - set(previous_players_sorted))
+        old_players = list(set(previous_players_sorted) - set(human_players_sorted))
+        log.debug(f"New players: {new_players}")
+        log.debug(f"Old players: {old_players}")
+
+        # Send notifications for new players
+        if new_players:
+            channel = guild.get_channel(match_channel)
+            if channel and isinstance(channel, discord.TextChannel):
+                for player in new_players:
+                    try:
+                        await channel.send(f"🟢 **{player}** has joined the Quake 3 server!")
+                    except discord.Forbidden:
+                        log.error(f"Missing permissions to send messages in channel '{channel.name}' for guild '{guild.name}'.")
+                    except discord.HTTPException as http_exc:
+                        log.error(f"HTTP error occurred while sending message in guild '{guild.name}': {http_exc}")
+            else:
+                log.error(f"Channel with ID {match_channel} not found or is not a text channel in guild '{guild.name}'.")
+
+        # Send notifications for players that left
+        if old_players:
+            channel = guild.get_channel(match_channel)
+            if channel and isinstance(channel, discord.TextChannel):
+                for player in old_players:
+                    try:
+                        await channel.send(f"🔴 **{player}** has left the Quake 3 server!")
+                    except discord.Forbidden:
+                        log.error(f"Missing permissions to send messages in channel '{channel.name}' for guild '{guild.name}'.")
+                    except discord.HTTPException as http_exc:
+                        log.error(f"HTTP error occurred while sending message in guild '{guild.name}': {http_exc}")
+            else:
+                log.error(f"Channel with ID {match_channel} not found or is not a text channel in guild '{guild.name}'.")
+
+        # Update the previous players list
+        await self.config.guild(guild).previous_players.set(human_players)
+        log.debug(f"UPDATED player list: {human_players}")
 
 ### LISTENERS FOR WHEN BOT IS ADDED TO OR LEFT FROM GUILD 
 
