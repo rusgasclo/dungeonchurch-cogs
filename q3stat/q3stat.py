@@ -27,13 +27,14 @@ class Q3stat(commands.Cog):
             "min_players": 1,                                                   # [int]minimum number of players for matchmaking
             "json_url": "https://quake.dungeon.church/qstat.json",              # [str] URL of qstat json output
             "json_interval": 60,                                                # [int] in seconds, how often to check the qstat URL
-            "match_channel": None,                                              # [int] Channel IDfor matchmaking messages
-            "match_embed_id": None,                                             # [int] Message ID for matchmaking announcement
+            "match_channel": None,                                              # [int] Channel ID for matchmaking messages
+            "match_embed_id": None,                                             # [int] Message ID for server info embed
             "match_thread_id": None,                                            # [int] Thread ID for the match_embed message
             "match_role": None,                                                 # [int] Role ID to give players
-            "match_cleanup": True,                                              # [bool] Delete matchmaking messages when active players drops below min_players
+            "match_cleanup": True,                                              # [bool] Delete matchmaking messages when players
             "previous_players": [],                                             # [list] Player state from last check
-            "nicks": []                                                         # [list[dict{}]] Map DiscordID:Nickname
+            "nicks": [],                                                        # [list[dict{}]] Map DiscordID:Nickname
+            "join_messages": {}                                                 # [dict] Mapping of player names to join message IDs
         }
         self.config.register_guild(**default_guild)
 
@@ -76,6 +77,8 @@ class Q3stat(commands.Cog):
                 pass
             del self.guild_tasks[guild.id]
             log.info(f"Stopped fetch task for guild '{guild.name}'.")
+
+    #### FETCH JSON & VALIDATE JSON
 
     async def fetch_guild_data(self, guild: discord.Guild):
         """Background task to fetch server stats and post matchmaking messages for a guild."""
@@ -133,6 +136,7 @@ class Q3stat(commands.Cog):
                 log.error(f"Unexpected error in fetch task for guild '{guild.name}': {e}")
                 await asyncio.sleep(60)  # Wait before retrying after unexpected errors
 
+    ### SEND/REMOVE MESSAGES
 
     async def send_player_update(self, guild: discord.Guild, server_data: dict, previous_players: list, match_channel: int):
         """
@@ -157,33 +161,54 @@ class Q3stat(commands.Cog):
         log.debug(f"New players: {new_players}")
         log.debug(f"Old players: {old_players}")
 
-        # Send notifications for new players
-        if new_players:
-            channel = guild.get_channel(match_channel)
-            if channel and isinstance(channel, discord.TextChannel):
-                for player in new_players:
-                    try:
-                        await channel.send(f"🟢 **{player}** has joined the Quake 3 server!")
-                    except discord.Forbidden:
-                        log.error(f"Missing permissions to send messages in channel '{channel.name}' for guild '{guild.name}'.")
-                    except discord.HTTPException as http_exc:
-                        log.error(f"HTTP error occurred while sending message in guild '{guild.name}': {http_exc}")
-            else:
-                log.error(f"Channel with ID {match_channel} not found or is not a text channel in guild '{guild.name}'.")
+        channel = guild.get_channel(match_channel)
+        if not channel or not isinstance(channel, discord.TextChannel):
+            log.error(f"Channel with ID {match_channel} not found or is not a text channel in guild '{guild.name}'.")
+            return
 
-        # Send notifications for players that left
+        # Retrieve the join_messages mapping & cleanup setting from the guild config
+        join_messages = await self.config.guild(guild).join_messages()
+        match_cleanup = await self.config.guild(guild).match_cleanup()
+
+        # Send notifications for new players and save the join message ID in config
+        if new_players:
+            for player in new_players:
+                try:
+                    msg = await channel.send(f"🟢 **{player}** has joined the Quake 3 server!")
+                    join_messages[player] = msg.id
+                except discord.Forbidden:
+                    log.error(f"Missing permissions to send messages in channel '{channel.name}' for guild '{guild.name}'.")
+                except discord.HTTPException as http_exc:
+                    log.error(f"HTTP error occurred while sending message in guild '{guild.name}': {http_exc}")
+            # Save the updated join_messages mapping
+            await self.config.guild(guild).join_messages.set(join_messages)
+
+        # Send notifications or delete join message for players that left
         if old_players:
-            channel = guild.get_channel(match_channel)
-            if channel and isinstance(channel, discord.TextChannel):
-                for player in old_players:
+            for player in old_players:
+                if match_cleanup:
+                    if player in join_messages:
+                        msg_id = join_messages.pop(player)
+                        try:
+                            msg = await channel.fetch_message(msg_id)
+                            await msg.delete()
+                        except discord.NotFound:
+                            log.error(f"Join message for player {player} not found in guild '{guild.name}'.")
+                        except discord.Forbidden:
+                            log.error(f"Missing permissions to delete message for player {player} in channel '{channel.name}' for guild '{guild.name}'.")
+                        except discord.HTTPException as http_exc:
+                            log.error(f"HTTP error occurred while deleting message for player {player} in guild '{guild.name}': {http_exc}")
+                    else:
+                        log.warning(f"No join message recorded for player {player} in guild '{guild.name}'.")
+                else:
                     try:
                         await channel.send(f"🔴 **{player}** has left the Quake 3 server!")
                     except discord.Forbidden:
-                        log.error(f"Missing permissions to send messages in channel '{channel.name}' for guild '{guild.name}'.")
+                        log.error(f"Missing permissions to send exit message in channel '{channel.name}' for guild '{guild.name}'.")
                     except discord.HTTPException as http_exc:
-                        log.error(f"HTTP error occurred while sending message in guild '{guild.name}': {http_exc}")
-            else:
-                log.error(f"Channel with ID {match_channel} not found or is not a text channel in guild '{guild.name}'.")
+                        log.error(f"HTTP error occurred while sending exit message for player {player} in guild '{guild.name}': {http_exc}")
+            if match_cleanup:
+                await self.config.guild(guild).join_messages.set(join_messages)
 
         # Update the previous players list
         await self.config.guild(guild).previous_players.set(human_players)
@@ -289,3 +314,18 @@ class Q3stat(commands.Cog):
             await ctx.send(success(f"`The matchmaking channel has been set to {channel}.`"))
         else:
             await ctx.send(question("`Please mention a channel or enter the Channel ID.`"))
+
+    @q3stat.command()
+    async def cleanup(self, ctx: commands.Context, state: bool = None) -> None:
+        """Toggle whether join messages should be deleted on player left server."""
+        current_state = await self.config.guild(ctx.guild).match_cleanup()
+        if state is None:
+            new_state = not current_state
+        else:
+            new_state = state
+        if new_state == current_state:
+            await ctx.send(error(f"`Message cleanup is already {'on' if current_state else 'off'}.`"))
+            return
+        await self.config.guild(ctx.guild).match_cleanup.set(new_state)
+        await ctx.send(success(f"`Message cleanup was turned {'on' if new_state else 'off'}.`"))
+        return
