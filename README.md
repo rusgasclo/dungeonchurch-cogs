@@ -70,4 +70,4 @@ qstat -json -P -q3s dungeon.church:27960 > /var/www/html/qstat.json
 * `[p]q3stat` to set the URL of that file & notification options.
 ## randomstatus
 Make a list of status activities, then cycle through them randomly or sequentially at a set interval.
-* `[p]randomstatus` to change settings 
+* `/randomstatus` to change settings
