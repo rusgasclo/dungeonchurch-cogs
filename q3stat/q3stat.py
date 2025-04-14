@@ -1,4 +1,4 @@
-from redbot.core import commands, Config, checks 
+from redbot.core import commands, app_commands, Config, checks 
 from redbot.core.utils.chat_formatting import error, question, success
 import discord
 from discord.ext import tasks
@@ -7,6 +7,7 @@ import asyncio
 import logging
 import json
 from datetime import datetime
+import io
 
 # Set up logging
 log = logging.getLogger("red.q3stat")
@@ -28,10 +29,13 @@ class Q3stat(commands.Cog):
             "json_url": "https://quake.dungeon.church/qstat.json",              # [str] URL of qstat json output
             "json_interval": 60,                                                # [int] in seconds, how often to check the qstat URL
             "match_channel": None,                                              # [int] Channel ID for matchmaking messages
-            "match_embed": None,                                                # [int] Message ID for server info embed
-            "match_thread": None,                                              # [int] Thread ID for the match_embed message
-            "noti_role": None,                                                 # [int] Role ID to give players
+            "match_embed_id": None,                                             # [int] Message ID for server info embed
+            "match_embed_channel": None,                                        # [int] Channel ID for server info embed
+            "match_thread": None,                                               # [int] Thread ID for the match_embed_id message
+            "noti_role": None,                                                  # [int] Role ID to give players
             "match_cleanup": True,                                              # [bool] Delete matchmaking messages when players
+            "previous_state": {},                                               # [dict] Previous JSON state
+            "current_state": {},                                                # [dict] Current JSON state
             "previous_players": [],                                             # [list] Player state from last check
             "nicks": [],                                                        # [list[dict{}]] Map DiscordID:Nickname
             "join_messages": {}                                                 # [dict] Mapping of player names to join message IDs
@@ -88,7 +92,9 @@ class Q3stat(commands.Cog):
                 json_url = await self.config.guild(guild).json_url()
                 match_channel = await self.config.guild(guild).match_channel()
                 match_thread = await self.config.guild(guild).match_thread()
+                match_embed_id = await self.config.guild(guild).match_embed_id()
                 json_interval = await self.config.guild(guild).json_interval()
+                # REFACTOR THIS INTO send_player_update
                 previous_players = await self.config.guild(guild).previous_players()
                 log.debug(f"Fetched previous_players for guild '{guild.name}': {previous_players}")
 
@@ -102,7 +108,8 @@ class Q3stat(commands.Cog):
                 elif match_channel:
                     target_channel = match_channel
                 else:
-                    log.debug(f"CONFIG: Neither thread nor channel is set.")
+                    log.error(f"Neither thread nor channel is set.")
+                    break
 
                 async with aiohttp.ClientSession() as session:
                     try:
@@ -126,14 +133,22 @@ class Q3stat(commands.Cog):
                 if not isinstance(data, list) or len(data) == 0:
                     log.error(f"Invalid JSON structure for guild '{guild.name}'. Expected a non-empty list.")
                     await asyncio.sleep(json_interval)
-                    continue
+                    break
 
-                # Assuming monitoring the first server in the list
-                server_data = data[0]
+                # Save State
+                current_state = data[0] # assumes first server in qstat.json
+                previous_state = await self.config.guild(guild).current_state()
+                # Set previous state
+                await self.config.guild(guild).previous_state.set(previous_state)
+                # Set current state
+                await self.config.guild(guild).current_state.set(current_state)
 
                 # CALL OTHER FUNCTIONS
                 # Send or remove player messages
-                await self.send_player_update(guild, server_data, previous_players, target_channel)
+                await self.send_player_update(guild, current_state, previous_players, target_channel)
+
+                # Call update embed function
+                await self.update_server_embed(guild, current_state)
 
                 # Wait for the next interval
                 await asyncio.sleep(json_interval)
@@ -147,13 +162,13 @@ class Q3stat(commands.Cog):
 
     ### SEND/REMOVE MESSAGES
 
-    async def send_player_update(self, guild: discord.Guild, server_data: dict, previous_players: list, match_channel: int):
+    async def send_player_update(self, guild: discord.Guild, current_state: dict, previous_players: list, match_channel: int):
         """
         Process the JSON data to determine player join/leave events and send notifications.
         This function filters out players with a ping of 0, compares current and previous states,
         sends notifications to the designated thread (if set) or channel, and updates the previous player list.
         """
-        players = server_data.get("players", [])
+        players = current_state.get("players", [])
         # Filter out players with ping = 0 (bots)
         human_players = [player["name"] for player in players if player.get("ping", 0) > 0]
         log.debug(f"Human players for guild '{guild.name}': {human_players}")
@@ -235,6 +250,74 @@ class Q3stat(commands.Cog):
         await self.config.guild(guild).previous_players.set(human_players)
         log.debug(f"UPDATED player list: {human_players}")
 
+
+    ### RETURN A SERVER EMBED BASED ON CURRENT STATE
+    async def generate_server_embed(self, current_state: dict) -> discord.Embed:
+        """Helper: Build and return an embed based on the current state data."""
+        status_raw = current_state.get("status", "offline").lower()
+        emoji = "🟢" if status_raw == "online" else "🔴"
+
+        embed = discord.Embed(
+            title=current_state.get("name", "Unknown Server"),
+            description=f"{emoji} `{current_state.get('address', 'N/A')}`",
+            color=discord.Color.red()
+        )
+        embed.add_field(
+            name="Players",
+            value=f"{current_state.get('numplayers', 0)} / {current_state.get('maxplayers', 'N/A')}",
+            inline=True
+        )
+        # Add Map in description if desired; here we use a field.
+        embed.add_field(name="Map", value=current_state.get("map", "Unknown"), inline=True)
+        embed.add_field(name="",value="",inline=True)
+
+        # Build a ranked list of players (sorted by score)
+        players = current_state.get("players", [])
+        if players:
+            sorted_players = sorted(players, key=lambda p: p.get("score", 0), reverse=True)
+            score_lines = []
+            player_lines = []
+            for player in sorted_players:
+                score = player.get("score", 0)
+                name = player.get("name", "Unknown")
+                if player.get("ping", 0) == 0:
+                    # Format bot names in italics
+                    name = f"_{name}_"
+                else:
+                    name = f"👤 **{name}**"
+                    score = f"  **{str(score)}**"
+                score_lines.append(str(score))
+                player_lines.append(f"{name}")
+            embed.add_field(name="Score", value="\n".join(score_lines), inline=True)
+            embed.add_field(name="Name", value="\n".join(player_lines), inline=True)
+            embed.add_field(name="",value="",inline=True)
+        return embed
+    
+    ### UPDATE AN EXISTING SERVER EMBED
+    async def update_server_embed(self, guild: discord.Guild, current_state: dict) -> None:
+        """
+        If a match_embed exists (message and channel IDs) in the guild config, update that message.
+        If the message does not exist, reset match_embed_id and match_embed_channel in config to None.
+        """
+        match_embed_id = await self.config.guild(guild).match_embed_id()
+        match_embed_channel = await self.config.guild(guild).match_embed_channel()
+        if match_embed_id and match_embed_channel:
+            channel = guild.get_channel(match_embed_channel)
+            if not channel:
+                log.warning(f"Channel with ID {match_embed_channel} not found in guild '{guild.name}'. Resetting embed config.")
+                await self.config.guild(guild).match_embed_id.set(None)
+                await self.config.guild(guild).match_embed_channel.set(None)
+                return
+            try:
+                msg = await channel.fetch_message(match_embed_id)
+                new_embed = await self.generate_server_embed(current_state)
+                await msg.edit(embed=new_embed)
+            except discord.NotFound:
+                log.warning(f"Server info embed not found for guild '{guild.name}' (ID: {match_embed_id}). Resetting embed config.")
+                await self.config.guild(guild).match_embed_id.set(None)
+                await self.config.guild(guild).match_embed_channel.set(None)
+            except Exception as e:
+                log.error(f"Error updating server info embed in guild '{guild.name}': {e}")
 
     ### LISTENERS FOR WHEN BOT IS ADDED TO OR LEFT FROM GUILD 
 
@@ -374,3 +457,17 @@ class Q3stat(commands.Cog):
         await self.config.guild(ctx.guild).match_cleanup.set(new_state)
         await ctx.send(success(f"`Message cleanup was turned {'on' if new_state else 'off'}.`"))
         return
+    
+    @commands.hybrid_command()
+    async def q3info(self, ctx: commands.Context) -> None:
+        """Display the server info embed."""
+        current_state = await self.config.guild(ctx.guild).current_state()
+        if not current_state:
+            await ctx.send("No current state is set in the config!")
+            return
+        
+        embed = await self.generate_server_embed(current_state)
+        msg = await ctx.send(embed=embed)
+        # Save both message ID and channel ID to config for later editing.
+        await self.config.guild(ctx.guild).match_embed_id.set(msg.id)
+        await self.config.guild(ctx.guild).match_embed_channel.set(ctx.channel.id)
