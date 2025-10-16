@@ -403,6 +403,7 @@ class Dice(commands.Cog):
 
         Modifier order does matter, and usually they allow for specifying a specific number or number ranges after them.
         """
+        roll = roll.lower() #sets roll to loser case, upper case D causes an error
         try:
             dice_roller = pyhedrals.DiceRoller(
                 maxDice=await self.config.max_dice_rolls(),
