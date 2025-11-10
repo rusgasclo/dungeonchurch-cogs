@@ -1,26 +1,29 @@
+from email import message
 import discord
 from redbot.core import commands, Config
 import aiohttp
 import xml.etree.ElementTree as ET
-import difflib
+import re
+from collections import Counter
+from itertools import islice
 import os
 import asyncio
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timezone
 
 class AiDm(commands.Cog):
     """SRD Dungeon Master with ChatGPT fallback for D&D 5e."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=1234567890)
+        self.config = Config.get_conf(self, identifier=11011234567890)
         # per-channel context + shared API key pool and selected model
         self.config.register_global(api_keys=[])
         self.config.register_global(model="deepseek/deepseek-chat-v3.1:free")
         self.config.register_channel(context=[])
         self.key_index = 0  # For round-robin rotation
-        self.srd_index = self.load_compendium("C:/redbot/cogs/AiDm/SelfSRD.xml")  # Adjust path for Docker mount
-
+        self.xml_path = '/aidm/selfsrd.xml'
+        
     async def get_next_key(self):
         """Return next API key from pool or fall back to OPENROUTER_API_KEY env var."""
         keys = await self.config.api_keys()
@@ -48,18 +51,44 @@ class AiDm(commands.Cog):
         return index
 
     # Fuzzy keyword match
-    def extract_keyword_fuzzy(self, text: str, cutoff=0.8):
-        words = text.lower().split()
-        for word in words:
-            matches = difflib.get_close_matches(word, self.srd_index.keys(), n=1, cutoff=cutoff)
-            if matches:
-                return matches[0]
-        return None
+    def extract_keyword_fuzzy(self, raw_text: str):
+        try:
+            # Basic English stopwords
+            stop_words = {
+                'a', 'an', 'the', 'and', 'or', 'but', 'if', 'while', 'with', 'to', 'from', 'in', 'on', 'at',
+                'by', 'for', 'of', 'up', 'down', 'out', 'over', 'under', 'again', 'further', 'then', 'once',
+                'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
+                'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than',
+                'too', 'very', 'can', 'will', 'just', 'don', 'should', 'now','tell','me','about'
+            }
+
+            # Tokenize and clean
+            words = re.findall(r'\b\w+\b', raw_text.lower())
+            filtered = [word for word in words if word not in stop_words]
+
+            def get_ngrams(n):
+                return [' '.join(ng) for ng in zip(*(islice(filtered, i, None) for i in range(n)))]
+
+            for n in (3, 2, 1):
+                ngrams = get_ngrams(n)
+                if ngrams:
+                    most_common = Counter(ngrams).most_common(1)
+                    if most_common:
+                        keyword = most_common[0][0]
+                        print(f"✅ Fuzzy keyword extracted (fallback n={n}): {keyword}")
+                        return keyword
+
+            print("⚠️ No keyword extracted from input.")
+            return None
+
+        except Exception as e:
+            print(f"❌ Failed to extract keyword: {e}")
+            return None
 
     # Build ChatGPT prompt with context
     async def build_prompt(self, channel, new_question: str):
         context = await self.config.channel(channel).context()
-        messages = [{"role": "system", "content": "You are a helpful Dungeon Master for D&D 5e."}]
+        messages = [{"role": "system", "content": "You are a helpful Dungeon Master for D&D 5e. Keep responses under 1000 characters."}]
         messages.extend(context)
         messages.append({"role": "user", "content": new_question})
         return messages
@@ -78,7 +107,7 @@ class AiDm(commands.Cog):
             return None
 
         messages = [
-            {"role": "system", "content": "Summarize this D&D conversation in under 500 characters."},
+            {"role": "system", "content": "Summarize this D&D conversation in under 1000 characters."},
             {"role": "user", "content": "\n".join([msg["content"] for msg in context if msg["role"] == "user"])}
         ]
 
@@ -99,9 +128,18 @@ class AiDm(commands.Cog):
 
         return cleaned
 
-    def append_to_srd_xml(self, keyword: str, description: str, xml_path="C:/redbot/cogs/AiDm/SelfSRD.xml"):
+    def ensure_xml_exists(self):
+        if not os.path.exists(self.xml_path):
+            os.makedirs(os.path.dirname(self.xml_path), exist_ok=True)
+            root = ET.Element("srd")
+            tree = ET.ElementTree(root)
+            tree.write(self.xml_path, encoding="utf-8", xml_declaration=True)
+            print(f"📄 Created new XML file at {self.xml_path}")
+
+    def append_to_srd_xml(self, keyword: str, description: str):
         try:
-            tree = ET.parse(xml_path)
+            self.ensure_xml_exists()
+            tree = ET.parse(self.xml_path)
             root = tree.getroot()
 
             new_entry = ET.Element("entry")
@@ -111,8 +149,11 @@ class AiDm(commands.Cog):
             text_tag = ET.SubElement(new_entry, "text")
             text_tag.text = description.strip()
 
+            last_used_tag = ET.SubElement(new_entry, "last_used")
+            last_used_tag.text = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             root.append(new_entry)
-            tree.write(xml_path, encoding="utf-8", xml_declaration=True)
+            tree.write(self.xml_path, encoding="utf-8", xml_declaration=True)
             print(f"✅ SRD entry for '{keyword}' added to XML.")
         except Exception as e:
             print(f"❌ Failed to append SRD entry: {e}")
@@ -177,7 +218,7 @@ class AiDm(commands.Cog):
     async def summarize_text(self, long_text: str):
         messages = [
             {"role": "system", "content": "You are a helpful Dungeon Master for D&D 5e."},
-            {"role": "user", "content": f"Summarize the following in under 1000 characters:\n\n{long_text}"}
+            {"role": "user", "content": f"Summarize the following in under 2000 characters:\n\n{long_text}"}
         ]
         summary = await self.query_ai(messages)
         return summary.replace("<｜begin▁of▁sentence｜>", "").strip()
@@ -198,15 +239,27 @@ class AiDm(commands.Cog):
         keyword = self.extract_keyword_fuzzy(raw_text)
 
         # SRD lookup
-        if keyword and keyword in self.srd_index:
-            entry = self.srd_index[keyword]
-            # If stored as dict with usage tracking
-            if isinstance(entry, dict):
-                entry["last_used"] = datetime.now(datetime.timezone.utc).isoformat()
-                await message.channel.send(f"📘 SRD entry for **{keyword}**:\n{entry['text']}")
-            else:
-                await message.channel.send(f"📘 SRD entry for **{keyword}**:\n{entry}")
-            return
+        if keyword:
+            try:
+                tree = ET.parse(self.xml_path)
+                root = tree.getroot()
+                for entry in root.findall("entry"):
+                    name_tag = entry.find("name")
+                    text_tag = entry.find("text")
+                    if name_tag is not None and name_tag.text.strip().lower() == keyword.lower():
+                        # Update last_used
+                        last_used_tag = entry.find("last_used")
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        if last_used_tag is None:
+                            last_used_tag = ET.SubElement(entry, "last_used")
+                        last_used_tag.text = timestamp
+                        tree.write(self.xml_path, encoding="utf-8", xml_declaration=True)
+
+                        await message.channel.send(f"📘 SRD entry for **{keyword}**:\n{text_tag.text.strip()}")
+                        return
+            except Exception as e:
+                print(f"Failed to read SRD entry: {e}")
+                return
 
         # Context prep
         context = await self.config.channel(message.channel).context()
@@ -227,12 +280,6 @@ class AiDm(commands.Cog):
 
             # Normalize keyword
             keyword = raw_text.lower().strip()
-
-            # Store in SRD index with usage tracking
-            self.srd_index[keyword] = {
-                "text": reply,
-                "last_used": datetime.utcnow().isoformat()
-            }
 
             # Append to XML
             self.append_to_srd_xml(keyword, reply)
@@ -387,10 +434,16 @@ class AiDm(commands.Cog):
                         headers={"Authorization": f"Bearer {key}"}
                     ) as response:
                         data = await response.json()
-                        limit = data.get("rate_limit", "N/A")
+                        key_data = data.get("data", {})
+                        limit_remaining = key_data.get("limit_remaining", "N/A")
+                        limit_total = key_data.get("limit", "N/A")
                         embed.add_field(
                             name=f"Key {i}",
-                            value=f"```\nKey: {masked_key}\nRate Limit Remaining: {limit}\n```",
+                            value=(
+                                f"```\nKey: {masked_key}"
+                                f"\nRate Limit Remaining: {limit_remaining}"
+                                f"\nRate Limit Total: {limit_total}\n```"
+                            ),
                             inline=True
                         )
                 except Exception as e:
@@ -404,8 +457,9 @@ class AiDm(commands.Cog):
         await msg.delete(delay=30)
     
     #add item to SRD
-    @commands.hybrid_command(name="addsrd", description="Add a new SRD entry to the XML file.")
+    @commands.hybrid_command()
     async def addsrd(self, ctx: commands.Context, title: str, description: str):
+        """Add a new entry to the SRD compendium."""
         self.append_to_srd_xml(title, description)
         await ctx.reply(f"✅ SRD entry for **{title}** added.", ephemeral=True)
 

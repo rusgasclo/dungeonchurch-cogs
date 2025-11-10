@@ -128,9 +128,11 @@ class InitiativeTracker(commands.Cog):
 
     # --- commands ----------------------------------------------------------------
 
-    @commands.hybrid_command()
+    @commands.hybrid_command(
+        help="Format: 'Player: Dex mod, Player2: S20 (S sets roll result) | Enemy: dm'. Commas required."
+    )
     async def rollinit(self, ctx, *, args: str):
-        """Roll initiative using 'Player: Dex mod, Player2: S20 (S sets roll result) | Enemy: +6' (commas required)."""
+        """Roll initiative for players and enemies."""
         if not self._require_guild(ctx):
             await ctx.send("❌ This command must be used in a server (not in DMs).")
             return
