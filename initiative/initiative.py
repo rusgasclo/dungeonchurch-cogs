@@ -156,6 +156,15 @@ class InitiativeTracker(commands.Cog):
             return
 
         await ctx.send("🎲 **Initiative Order:**\n" + "\n".join(self._format_line(c) for c in all_combatants))
+        # Auto-sync with AiDm cog
+        try:
+            dnd_cog = ctx.bot.get_cog("AiDm")
+            if dnd_cog:
+                await dnd_cog.sync_combat_state(ctx.guild, ctx.channel)
+        except Exception:
+            pass
+
+
 
     @commands.hybrid_command()
     async def checkinit(self, ctx):
@@ -206,3 +215,10 @@ class InitiativeTracker(commands.Cog):
         await self.config.guild(ctx.guild).init_order.set(to_store)
 
         await ctx.send(f"❌ Removed '{removed['name']}' from initiative.\n📋 Updated Order:\n" + "\n".join(self._format_line(c) for c in normalized))
+        # Auto-sync with AiDm cog
+        try:
+            dnd_cog = ctx.bot.get_cog("AiDm")
+            if dnd_cog:
+                await dnd_cog.sync_combat_state(ctx.guild, ctx.channel)
+        except Exception:
+            pass

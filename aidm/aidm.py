@@ -1,4 +1,3 @@
-from email import message
 import discord
 from redbot.core import commands, Config
 import aiohttp
@@ -9,7 +8,21 @@ from itertools import islice
 import os
 import asyncio
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime
+
+SYSTEM_PROMPT = """
+You are the DM for a D&D 5e text adventure. You control the world, NPCs, monsters, and events, but never act for the player unless they explicitly ask. Do not roll for a player unless asked. Keep responses under 2000 characters and always wait for the player’s next action.
+Use D&D 5e mechanics when relevant: ability checks, saving throws, combat rounds, NPC/monster rolls, and clear consequences.
+Create locations, NPCs, quests, items, and encounters as needed. Maintain a consistent world state and avoid contradicting established facts. New lore must fit the existing tone and logic.
+Let the player set the pace. Do not push the story forward unless their action clearly advances it. If their intent is unclear, ask for clarification. Avoid assumptions, railroading, or forcing a specific outcome.
+Keep descriptions vivid but concise. Provide only information the player would reasonably perceive. Keep NPC motivations consistent and consequences meaningful. Avoid real‑world politics.
+If the player attempts something impossible, offer a creative alternative rather than shutting them down.
+Your responses should feel natural and conversational, like a DM at the table. Use this flexible structure:
+- Start with immersive narration.
+- Weave in mechanics only when needed.
+- End by inviting the player to choose their next action.
+Do not use rigid numbered sections unless the situation genuinely benefits from it
+"""
 
 class AiDm(commands.Cog):
     """SRD Dungeon Master with ChatGPT fallback for D&D 5e."""
@@ -50,6 +63,18 @@ class AiDm(commands.Cog):
             print(f"Failed to load SRD compendium: {e}")
         return index
 
+    def hide_mechanics(self,text: str) -> str:
+        # CR or DC followed by optional space and digits
+        text = re.sub(r'\b(CR|DC)\s?(\d+)\b', r'||\1\2||', text)
+
+        # Rolls like: "Roll 1d20 = 14" or "1d20: 14"
+        text = re.sub(r'(\d+d\d+)\s*[:=]\s*(\d+)', r'||\1 = \2||', text)
+
+        # Standalone roll results like "Roll: 14" or "roll 17"
+        text = re.sub(r'\b[Rr]oll(?:ed)?[: ]+(\d+)\b', r'||Roll \1||', text)
+
+        return text
+
     # Fuzzy keyword match
     def extract_keyword_fuzzy(self, raw_text: str):
         try:
@@ -59,7 +84,8 @@ class AiDm(commands.Cog):
                 'by', 'for', 'of', 'up', 'down', 'out', 'over', 'under', 'again', 'further', 'then', 'once',
                 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
                 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than',
-                'too', 'very', 'can', 'will', 'just', 'don', 'should', 'now','tell','me','about'
+                'too', 'very', 'can', 'will', 'just', 'don', 'should', 'now','tell','me','about','what','is'
+                ,'are','s'
             }
 
             # Tokenize and clean
@@ -88,7 +114,7 @@ class AiDm(commands.Cog):
     # Build ChatGPT prompt with context
     async def build_prompt(self, channel, new_question: str):
         context = await self.config.channel(channel).context()
-        messages = [{"role": "system", "content": "You are a helpful Dungeon Master for D&D 5e. Keep responses under 1000 characters."}]
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(context)
         messages.append({"role": "user", "content": new_question})
         return messages
@@ -228,6 +254,19 @@ class AiDm(commands.Cog):
         for chunk in chunks:
             await channel.send(chunk)
  
+    def is_question_like(self, message: str) -> bool:
+        # Escape character forces AI fallback
+        if message.strip().startswith("!"):
+            return False
+
+        QUESTION_STARTERS = {
+            "what", "who", "when", "where", "why", "how",
+            "is", "are", "can", "could", "would", "should",
+            "will", "shall", "may", "might","explain","tell", "describe","?"
+        }
+        words = message.lower().split()
+        return words and words[0] in QUESTION_STARTERS
+    
     # Main handler
     async def handle_dnd_query(self, message: discord.Message):
         user_id = message.author.id
@@ -236,30 +275,31 @@ class AiDm(commands.Cog):
         if not raw_text:
             return await message.channel.send("What would you like to ask the DM?")
 
-        keyword = self.extract_keyword_fuzzy(raw_text)
+        # Skip SRD lookup if not a question
+        if self.is_question_like(raw_text):
+            keyword = self.extract_keyword_fuzzy(raw_text).lower().strip()
 
-        # SRD lookup
-        if keyword:
-            try:
-                tree = ET.parse(self.xml_path)
-                root = tree.getroot()
-                for entry in root.findall("entry"):
-                    name_tag = entry.find("name")
-                    text_tag = entry.find("text")
-                    if name_tag is not None and name_tag.text.strip().lower() == keyword.lower():
-                        # Update last_used
-                        last_used_tag = entry.find("last_used")
-                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        if last_used_tag is None:
-                            last_used_tag = ET.SubElement(entry, "last_used")
-                        last_used_tag.text = timestamp
-                        tree.write(self.xml_path, encoding="utf-8", xml_declaration=True)
+            if keyword:
+                try:
+                    tree = ET.parse(self.xml_path)
+                    root = tree.getroot()
+                    for entry in root.findall("entry"):
+                        name_tag = entry.find("name")
+                        text_tag = entry.find("text")
+                        if name_tag is not None and name_tag.text.strip().lower() == keyword.lower():
+                            # Update last_used
+                            last_used_tag = entry.find("last_used")
+                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            if last_used_tag is None:
+                                last_used_tag = ET.SubElement(entry, "last_used")
+                            last_used_tag.text = timestamp
+                            tree.write(self.xml_path, encoding="utf-8", xml_declaration=True)
 
-                        await message.channel.send(f"📘 SRD entry for **{keyword}**:\n{text_tag.text.strip()}")
-                        return
-            except Exception as e:
-                print(f"Failed to read SRD entry: {e}")
-                return
+                            await message.channel.send(f"📘 SRD entry for **{keyword}**:\n{text_tag.text.strip()}")
+                            return
+                except Exception as e:
+                    print(f"Failed to read SRD entry: {e}")
+                    return
 
         # Context prep
         context = await self.config.channel(message.channel).context()
@@ -267,7 +307,8 @@ class AiDm(commands.Cog):
             await self.summarize_context(message.channel)
 
         # AI fallback
-        messages = await self.build_prompt(message.channel, raw_text)
+        query_text = raw_text.lstrip("!? ") # Remove escape character if present
+        messages = await self.build_prompt(message.channel, query_text)
         try:
             reply = await self.query_ai(messages)
             reply = reply.replace("<｜begin▁of▁sentence｜>", "").strip()
@@ -275,19 +316,40 @@ class AiDm(commands.Cog):
             if len(reply) > 2000:
                 reply = await self.summarize_text(reply)
 
-            await self.send_long_message(message.channel, f"DM Says: {reply}")
-            await self.update_context(message.channel, raw_text, reply)
+            await self.send_long_message(message.channel, f"DM Says: {self.hide_mechanics(reply)}")
+            await self.update_context(message.channel, query_text, reply)
 
-            # Normalize keyword
-            keyword = raw_text.lower().strip()
-
-            # Append to XML
-            self.append_to_srd_xml(keyword, reply)
+            # Only update SRD if message is question-like
+            if self.is_question_like(raw_text):
+                self.append_to_srd_xml(keyword, reply)
 
         except Exception as e:
             await message.channel.send(f"Something went wrong: {e}")
 
-    # Trigger on @dm
+# Auto-assign Player role when someone registers a character in the create-a-character channel
+    @commands.Cog.listener(name="on_message")
+    async def _auto_assign_player_role(self, message: discord.Message):
+        if message.author.bot or not message.guild:
+            return
+
+        if getattr(message.channel, "name", None) != "create-a-character":
+            return
+
+        if not message.content.lower().startswith("tul!register"):
+            return
+
+        role = discord.utils.get(message.guild.roles, name="Player")
+        if role is None:
+            await message.channel.send("⚠️ The 'Player' role does not exist.")
+            return
+
+        try:
+            await message.author.add_roles(role, reason="Auto-assigned on tul!register")
+            await message.channel.send(f"🎉 {message.author.mention} has been given the **Player** role.")
+        except discord.Forbidden:
+            await message.channel.send("❌ I don't have permission to assign roles.")
+
+        # Trigger on @dm
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
